@@ -3,8 +3,9 @@ import theano
 from theano import tensor as T
 from collections import OrderedDict
 import time
-from fish import ProgressFish
+#from fish import ProgressFish
 from nn_layers import build_shared_zeros
+from tqdm import tqdm
 
 
 
@@ -260,9 +261,11 @@ class Trainer(object):
     while epoch < n_epochs:
         avg_costs = []
         timer = time.time()
-        fish = ProgressFish(total=len(train_set_iterator))
-        for i, (x, y) in enumerate(train_set_iterator, 1):
-            fish.animate(amount=i)
+        #fish = ProgressFish(total=len(train_set_iterator))
+        #for i, (x, y) in enumerate(train_set_iterator, 1):
+        # fish.animate(amount=i)
+        for i, (x, y) in enumerate(tqdm(train_set_iterator), 1):
+            
 
             avg_cost = train_fn(x, y)
             if type(avg_cost) == list:
