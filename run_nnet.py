@@ -136,7 +136,7 @@ def main():
 
   n_epochs = 25
   batch_size = 50
-  learning_rate = 0.1
+  learning_rate = 1
   max_norm = 0
 
   print 'batch_size', batch_size
