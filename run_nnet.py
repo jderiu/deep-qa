@@ -136,7 +136,7 @@ def main():
 
   n_epochs = 25
   batch_size = 50
-  learning_rate = 1
+  learning_rate = 0.1
   max_norm = 0
 
   print 'batch_size', batch_size
@@ -157,8 +157,8 @@ def main():
   a_k_max = 1
 
   # filter_widths = [3,4,5]
-  q_filter_widths = [5]
-  a_filter_widths = [5]
+  q_filter_widths = [3]
+  a_filter_widths = [3]
 
   ###### QUESTION ######
   lookup_table_words = nn_layers.LookupTableFastStatic(W=vocab_emb, pad=max(q_filter_widths)-1)
@@ -341,7 +341,8 @@ def main():
   batch_y = T.ivector('batch_y')
 
   # updates = sgd_trainer.get_adagrad_updates(cost, params, learning_rate=learning_rate, max_norm=max_norm, _eps=1e-6)
-  updates = sgd_trainer.get_adadelta_updates(cost, params, rho=0.95, eps=1e-6, max_norm=max_norm, word_vec_name='W_emb')
+  #updates = sgd_trainer.get_adadelta_updates(cost, params, rho=0.95, eps=1e-6, max_norm=max_norm, word_vec_name='W_emb')
+  updates = sgd_trainer.get_sgd_updates(cost, params, learning_rate=learning_rate, max_norm=max_norm, rho=0.95, word_vec_name='W_emb')
 
   inputs_pred = [batch_x_q,
                  batch_x_a,

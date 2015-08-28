@@ -109,7 +109,7 @@ class DatasetMiniBatchIterator(object):
 
 
 
-def get_sgd_updates(cost, params, learning_rate=0.1, max_norm=9, rho=0.95):
+def get_sgd_updates(cost, params, learning_rate=0.1, max_norm=9, rho=0.95, word_vec_name='W_emb'):
     """ Returns an Adagrad (Duchi et al. 2010) trainer using a learning rate.
     """
     print "Generating sgd updates"
@@ -118,7 +118,7 @@ def get_sgd_updates(cost, params, learning_rate=0.1, max_norm=9, rho=0.95):
     # compute list of weights updates
     updates = OrderedDict()
     for param, gparam in zip(params, gparams):
-        if max_norm:
+        if max_norm and param.name != word_vec_name:
             W = param - gparam * learning_rate
             col_norms = W.norm(2, axis=0)
             desired_norms = T.clip(col_norms, 0, max_norm)
