@@ -342,7 +342,7 @@ def main():
 
   # updates = sgd_trainer.get_adagrad_updates(cost, params, learning_rate=learning_rate, max_norm=max_norm, _eps=1e-6)
   #updates = sgd_trainer.get_adadelta_updates(cost, params, rho=0.95, eps=1e-6, max_norm=max_norm, word_vec_name='W_emb')
-  updates = sgd_trainer.get_sgd_updates(cost, params, learning_rate=learning_rate, max_norm=max_norm, rho=0.95, word_vec_name='W_emb')
+  updates = sgd_trainer.get_sgd_updates(cost, params, learning_rate=learning_rate, max_norm=max_norm, rho=0.95, word_vec_name='W_emb', weight_decay=1e-6)
 
   inputs_pred = [batch_x_q,
                  batch_x_a,
