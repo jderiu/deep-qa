@@ -1,5 +1,7 @@
-.pyc
-exp.out
-TRAIN
-TRAIN-ALL
-embeddings
+*.pyc
+exp.out/
+TRAIN/
+TRAIN-ALL/
+embeddings/
+
+

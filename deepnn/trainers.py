@@ -4,7 +4,7 @@ from theano import tensor as T
 from collections import OrderedDict
 import time
 #from fish import ProgressFish
-from nn_layers import build_shared_zeros
+from layers import build_shared_zeros
 from tqdm import tqdm
 
 

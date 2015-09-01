@@ -6,6 +6,7 @@ from theano.tensor.nnet import conv
 from theano.tensor.signal import downsample
 import theano.sandbox.neighbours as TSN
 from theano.tensor.shared_randomstreams import RandomStreams
+#from activations import *
 
 import conv1d
 
@@ -25,14 +26,6 @@ def load_nnet(nnet_fname, params_fname=None):
     assert numpy.allclose(p_train.get_value(), p_test.get_value())
 
   return train_nnet, test_nnet
-
-
-def relu(x):
-    return T.maximum(0.0, x)
-
-def relu_f(z):
-    """ Wrapper to quickly change the rectified linear unit function """
-    return z * (z > 0.)
 
 
 def build_shared_zeros(shape, name):
