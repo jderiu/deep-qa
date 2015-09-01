@@ -140,7 +140,7 @@ def main():
   ### Nonlinearity type
   # activation = layers.relu_f
   # activation = activations.tanh
-  activation = activations.relu
+  activation = activations.tanh
 
 
   dropout_rate = 0.5
