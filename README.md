@@ -20,6 +20,7 @@ Evaluation is performed using the standard 'trec_eval' script.
 - pandas
 - tqdm
 - numba
+- termcolor (not really needed)
 
 Python packages can be easily installed using the standard tool: pip install <package>
 

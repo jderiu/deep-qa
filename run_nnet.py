@@ -17,8 +17,14 @@ import deepnn.layers as layers
 import deepnn.activations as activations
 import deepnn.trainers as trainers
 
-#import warnings
-#warnings.filterwarnings("ignore")  # TODO remove
+try:
+  from termcolor import colored
+except:
+  colored = lambda x, y: x
+  print('WARNING: termcolor suggested readability')
+
+import warnings
+warnings.filterwarnings("ignore")  # TODO remove
 
 ### THEANO DEBUG FLAGS
 # theano.config.optimizer = 'fast_compile'
@@ -38,7 +44,7 @@ def main():
       print "ERROR! The two possible training settings are: ['TRAIN', 'TRAIN-ALL']"
       sys.exit(1)
 
-  print "Running training in the {} setting".format(mode)
+  print "Running training in the {} setting\n".format(mode)
 
   data_dir = mode
 
@@ -76,17 +82,17 @@ def main():
   # x_dev = scaler.transform(x_dev)
   # x_test = scaler.transform(x_test)
 
-  print 'y_train', numpy.unique(y_train, return_counts=True)
-  print 'y_dev', numpy.unique(y_dev, return_counts=True)
-  print 'y_test', numpy.unique(y_test, return_counts=True)
+  print 'y_train --> {}'.format(numpy.unique(y_train, return_counts=True))
+  print 'y_dev   --> {}'.format(numpy.unique(y_dev, return_counts=True))
+  print 'y_test  --> {}\n'.format(numpy.unique(y_test, return_counts=True))
 
-  print 'q_train', q_train.shape
-  print 'q_dev', q_dev.shape
-  print 'q_test', q_test.shape
+  print 'q_train --> {}'.format(q_train.shape)
+  print 'q_dev   --> {}'.format(q_dev.shape)
+  print 'q_test  --> {}\n'.format(q_test.shape)
 
-  print 'a_train', a_train.shape
-  print 'a_dev', a_dev.shape
-  print 'a_test', a_test.shape
+  print 'a_train --> {}'.format(a_train.shape)
+  print 'a_dev   --> {}'.format(a_dev.shape)
+  print 'a_test  --> {}\n'.format(a_test.shape)
 
 
   numpy_rng = numpy.random.RandomState(123)
@@ -96,10 +102,10 @@ def main():
   # print 'min', numpy.min(a_train)
 
   ndim = 5
-  print "Generating random vocabulary for word overlap indicator features with dim:", ndim
+  print "Generating random vocabulary for word overlap indicator features with dim: {}\n".format(ndim)
   dummy_word_id = numpy.max(a_overlap_train)
   # vocab_emb_overlap = numpy_rng.uniform(-0.25, 0.25, size=(dummy_word_id+1, ndim))
-  print "Gaussian"
+  print "Gaussian\n"
   vocab_emb_overlap = numpy_rng.randn(dummy_word_id+1, ndim) * 0.25
   # vocab_emb_overlap = numpy_rng.randn(dummy_word_id+1, ndim) * 0.05
   # vocab_emb_overlap = numpy_rng.uniform(-0.25, 0.25, size=(dummy_word_id+1, ndim))
@@ -108,11 +114,11 @@ def main():
   # Load word2vec embeddings
   fname = os.path.join(data_dir, 'emb_aquaint+wiki.txt.gz.ndim=50.bin.npy')
 
-  print "Loading word embeddings from", fname
+  print "Loading word embeddings from {}".format(fname)
   vocab_emb = numpy.load(fname)
   ndim = vocab_emb.shape[1]
   dummpy_word_idx = numpy.max(a_train)
-  print "Word embedding matrix size:", vocab_emb.shape
+  print "Word embedding matrix size: {}\n".format(vocab_emb.shape)
 
   x = T.dmatrix('x')
   x_q = T.lmatrix('q')
@@ -129,10 +135,10 @@ def main():
   learning_rate = 0.1
   max_norm = 0
 
-  print 'batch_size', batch_size
-  print 'n_epochs', n_epochs
-  print 'learning_rate', learning_rate
-  print 'max_norm', max_norm
+  print 'batch_size    --> {}'.format(batch_size)
+  print 'n_epochs      --> {}'.format(n_epochs)
+  print 'learning_rate --> {}'.format(learning_rate)
+  print 'max_norm      --> {}\n'.format(max_norm)
 
   ## 1st conv layer.
   ndim = vocab_emb.shape[1] + vocab_emb_overlap.shape[1]
@@ -141,6 +147,8 @@ def main():
   # activation = layers.relu_f
   # activation = activations.tanh
   activation = activations.tanh
+
+
 
 
   dropout_rate = 0.5
@@ -280,6 +288,7 @@ def main():
   #######
 
   print train_nnet
+  print
 
   params = train_nnet.params
 
@@ -288,11 +297,11 @@ def main():
   if not os.path.exists(nnet_outdir):
     os.makedirs(nnet_outdir)
   nnet_fname = os.path.join(nnet_outdir, 'nnet.dat')
-  print "Saving to", nnet_fname
+  print "Saving to             --> {}".format(nnet_fname)
   cPickle.dump([train_nnet, test_nnet], open(nnet_fname, 'wb'), protocol=cPickle.HIGHEST_PROTOCOL)
 
   total_params = sum([numpy.prod(param.shape.eval()) for param in params])
-  print 'Total params number:', total_params
+  print 'Total params number   --> {}\n'.format(total_params)
 
   cost = train_nnet.layers[-1].training_cost(y)
   # y_train_counts = numpy.unique(y_train, return_counts=True)[1].astype(numpy.float32)
@@ -334,7 +343,7 @@ def main():
 
   # updates = trainers.get_adagrad_updates(cost, params, learning_rate=learning_rate, max_norm=max_norm, _eps=1e-6)
   updates = trainers.get_adadelta_updates(cost, params, rho=0.95, eps=1e-6, max_norm=max_norm, word_vec_name='W_emb')
-  #updates = trainers.get_sgd_updates(cost, params, learning_rate=learning_rate, max_norm=max_norm, word_vec_name='W_emb', weight_decay=1e-6)
+  #updates = trainers.get_sgd_updates(cost, params, learning_rate=learning_rate, max_norm=max_norm, word_vec_name='W_emb')
 
   inputs_pred = [batch_x_q,
                  batch_x_a,
@@ -391,7 +400,7 @@ def main():
   test_set_iterator = trainers.MiniBatchIteratorConstantBatchSize(numpy_rng, [q_test, a_test, q_overlap_test, a_overlap_test, y_test], batch_size=batch_size, randomize=False)
 
   labels = sorted(numpy.unique(y_test))
-  print 'labels', labels
+  print 'labels           --> {}\n'.format(labels)
 
   def map_score(qids, labels, preds):
     qid2cand = defaultdict(list)
@@ -428,6 +437,7 @@ def main():
   num_train_batches = len(train_set_iterator)
   while epoch < n_epochs:
       timer = time.time()
+      dev_accs = []
       for i, (x_q, x_a, x_q_overlap, x_a_overlap, y) in enumerate(tqdm(train_set_iterator), 1):
           train_fn(x_q, x_a, x_q_overlap, x_a_overlap, y)
 
@@ -437,22 +447,27 @@ def main():
 
           if i % 10 == 0 or i == num_train_batches:
             y_pred_dev = predict_prob_batch(dev_set_iterator)
-            # # dev_acc = map_score(qids_dev, y_dev, predict_prob_batch(dev_set_iterator)) * 100
+            #dev_acc = map_score(qids_dev, y_dev, predict_prob_batch(dev_set_iterator)) * 100
             dev_acc = metrics.roc_auc_score(y_dev, y_pred_dev) * 100
+            dev_accs.append(dev_acc)
+            y_pred = predict_prob_batch(test_set_iterator)
+            test_acc = map_score(qids_test, y_test, y_pred) * 100
             if dev_acc > best_dev_acc:
               y_pred = predict_prob_batch(test_set_iterator)
               test_acc = map_score(qids_test, y_test, y_pred) * 100
 
-              print('epoch: {} batch: {} dev auc: {:.4f}; test map: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, i, dev_acc, test_acc, best_dev_acc))
+              print(colored('epoch: {} batch: {} dev auc: {:.4f}; test map: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, i, dev_acc, test_acc, best_dev_acc),'green'))
               best_dev_acc = dev_acc
               best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
               no_best_dev_update = 0
+            elif i % 10 == 0 :
+              print(colored('epoch: {} batch: {} dev auc: {:.4f}; test map: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, i, dev_acc, test_acc, best_dev_acc),'red'))
 
       if no_best_dev_update >= 3:
         print "Quitting after of no update of the best score on dev set", no_best_dev_update
         break
 
-      print('epoch {} took {:.4f} seconds'.format(epoch, time.time() - timer))
+      print('epoch {} took {:.4f} seconds and the average dev_acc is {:.4f}'.format(epoch, time.time() - timer, reduce(lambda x, y: x + y, dev_accs) / len(dev_accs)))
       epoch += 1
       no_best_dev_update += 1
 
