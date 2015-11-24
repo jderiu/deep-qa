@@ -154,12 +154,15 @@ def load_bin_vec(fname, words):
     print 'vocab_size, layer1_size', vocab_size, layer1_size
     count = 0
     for i, line in enumerate(xrange(vocab_size)):
-      if i % 100000 == 0:
+      if i % 1000 == 0:
         print '.',
       word = []
       while True:
         ch = f.read(1)
-        if ch == ' ':
+        if i == 10355:
+          print word
+        if ch == ' ' or ch=='':
+            print i, word
             word = ''.join(word)
             break
         if ch != '\n':
@@ -173,6 +176,21 @@ def load_bin_vec(fname, words):
     print "Words found in wor2vec embeddings", count
     return word_vecs
 
+
+def load_glove_vec(fname,words):
+  vocab = set(words)
+  word_vecs = {}
+  with open(fname) as f:
+    count = 0
+    for line in f:
+      if line == "":
+        continue
+      splits = line.split(' ')
+      word = splits[0]
+      if word in vocab:
+        count += 1
+        word_vecs[word] = splits[1:]
+  return word_vecs
 
 TASK_A = '/mnt/sdd/home/sovarm/nrc-twitter/data/semeval-2015/SemEval2015-task10-test-A-input.txt'
 TASK_A_PROGRESS = '/mnt/sdd/home/sovarm/nrc-twitter/data/semeval-2015/SemEval2015-task10-test-A-input-progress.txt'
