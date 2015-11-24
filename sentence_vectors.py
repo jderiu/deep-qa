@@ -3,6 +3,8 @@ import numpy
 import os
 from theano import tensor as T
 import nn_layers
+import sgd_trainer
+import tqdm
 
 def main():
     print "Hello"
@@ -135,10 +137,10 @@ def main():
     ######
 
 
+    train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(numpy_rng, [q_train, q_overlap_train, y_train],batch_size=batch_size, randomize=True)
 
-
-
-    print nnet_q.output_func(q_train[1])
+    for i, (x_q, x_a, x_q_overlap, x_a_overlap, y) in enumerate(tqdm(train_set_iterator), 1):
+        print nnet_q.output_func([x_q,x_a_overlap])
 
 
 if __name__ == '__main__':
