@@ -187,7 +187,7 @@ def main():
         flatten_layer,
     ])
     nnet_q.set_input((x_q, x_q_overlap))
-    print nnet_q.output
+    print nnet_q.__repr__()
     ######
 
 
