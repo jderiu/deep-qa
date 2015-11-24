@@ -138,7 +138,7 @@ def main():
 
 
 
-    print nnet_q
+    print nnet_q.output_func(q_train[1])
 
 
 if __name__ == '__main__':
