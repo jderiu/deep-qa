@@ -294,6 +294,7 @@ class LinearLayer(Layer):
     self.biases = [self.b]
 
   def output_func(self, input):
+    print self.activation(T.dot(input, self.W) + self.b)
     return self.activation(T.dot(input, self.W) + self.b)
 
   def __repr__(self):
