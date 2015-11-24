@@ -116,7 +116,7 @@ def main():
   vocab_emb_overlap[-1] = 0
 
   # Load word2vec embeddings
-  fname = os.path.join(data_dir, 'emb_aquaint+wiki.txt.gz.ndim=50.bin.npy')
+  fname = os.path.join(data_dir, 'emb_glove.twitter.27B.50d.txt.npy')
 
   print "Loading word embeddings from", fname
   vocab_emb = numpy.load(fname)
