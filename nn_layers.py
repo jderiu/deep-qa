@@ -84,7 +84,7 @@ class FeedForwardNet(Layer):
 
   def output_func(self, input):
     cur_input = input
-    for layer in self.layers:
+    for layer in self.layers:	
       layer.set_input(cur_input)
       cur_input = layer.output
     return cur_input
@@ -295,7 +295,7 @@ class LinearLayer(Layer):
 
   def output_func(self, input):
     self.result = self.activation(T.dot(input, self.W) + self.b)
-    return self.activation(T.dot(input, self.W) + self.b)
+    return self.result
 
   def __repr__(self):
     return "{}: W_shape={} b_shape={} activation={}".format(self.__class__.__name__, self.W.shape.eval(), self.b.shape.eval(), self.activation)

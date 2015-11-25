@@ -87,7 +87,7 @@ def main():
     n_outs = 2
 
     n_epochs = 25
-    batch_size = 50
+    batch_size = q_train.shape[0]
     learning_rate = 0.1
     max_norm = 0
 
@@ -161,7 +161,8 @@ def main():
 
     o = output_batch(train_set_iterator)
 
-    print(o.shape)
+    print o.shape	
+
 
 
 if __name__ == '__main__':
