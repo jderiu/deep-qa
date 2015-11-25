@@ -8,16 +8,13 @@ from tqdm import tqdm
 
 def main():
     data_dir = "semeval"
-    q_train = numpy.load(os.path.join(data_dir, 'train.questions.npy'))
-    a_train = numpy.load(os.path.join(data_dir, 'train.answers.npy'))
+    q_train = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tweets.npy'))
+    qids_test = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tids.npy'))
 
 
 
     numpy_rng = numpy.random.RandomState(123)
     q_max_sent_size = q_train.shape[1]
-    a_max_sent_size = a_train.shape[1]
-
-
 
 
     # Load word2vec embeddings
@@ -26,7 +23,7 @@ def main():
     print "Loading word embeddings from", fname
     vocab_emb = numpy.load(fname)
     ndim = vocab_emb.shape[1]
-    dummpy_word_idx = numpy.max(a_train)
+    dummpy_word_idx = numpy.max(q_train)
     print "Word embedding matrix size:", vocab_emb.shape
 
     x_q = T.lmatrix('q')
