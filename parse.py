@@ -175,7 +175,7 @@ if __name__ == '__main__':
     subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
 
     # qids, questions, answers, labels = load_data(all_fname, stoplist)
-    qids, questions, answers, labels = load_data(all_fname)
+    qids, questions, answers, labels = load_data(dev)
 
     ### Compute document frequencies.
     seen = set()
