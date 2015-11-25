@@ -85,7 +85,6 @@ def main():
     print nnet_q
     ######
     batch_x_q = T.lmatrix('batch_x_q')
-    batch_x_q_overlap = T.lmatrix('batch_x_q_overlap')
 
     inputs_pred = [batch_x_q]
     givens_pred = {x_q: batch_x_q}
@@ -102,7 +101,9 @@ def main():
 
     train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(numpy_rng, [q_train],batch_size=batch_size, randomize=True)
 
-    o = output_batch(train_set_iterator)
+    for tweet in q_train:
+        print output_fn(tweet)
+
 
     print o.shape
 
