@@ -94,8 +94,8 @@ def main():
     output_fn = function(inputs=inputs_pred, outputs=output,givens=givens_pred)
 
     def output_batch(batch_iterator):
-        preds = numpy.hstack([output_fn(batch_x_q, batch_x_q_overlap) for
-                              batch_x_q, batch_x_q_overlap, _ in batch_iterator])
+        preds = numpy.hstack([output_fn(batch_x_q) for
+                              batch_x_q in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
 
