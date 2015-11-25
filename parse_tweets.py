@@ -44,7 +44,7 @@ if __name__ == '__main__':
     test = "semeval/task-B-test2014-twitter.tsv"
     dev = "semeval/twitter-test-gold-B.downloaded.dev"
 
-    all_fname = "/tmp/trec-merged.txt"
+    all_fname = "semeval/all-merged.txt"
     files = ' '.join([train, dev, test])
     subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
 
