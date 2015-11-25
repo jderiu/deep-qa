@@ -41,7 +41,15 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=40):
 if __name__ == '__main__':
     outdir = "semeval"
     train = "semeval/task-B-train-plus-dev.tsv"
-    tid,tweet = load_data(train)
+    test = "task-B-test2014-twitter.tsv"
+    dev = "twitter-test-gold-B.downloaded.dev"
+
+    all_fname = "/tmp/trec-merged.txt"
+    files = ' '.join([train, dev, test])
+
+    subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
+
+    tid,tweet = load_data(all_fname)
     print "Number of tweets:",tweet.__len__()
 
     alphabet = Alphabet(start_feature_id=0)
