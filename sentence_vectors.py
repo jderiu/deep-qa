@@ -95,7 +95,7 @@ def main():
 
     def output_batch(batch_iterator):
         preds = numpy.hstack([output_fn(batch_x_q) for
-                              batch_x_q in batch_iterator])
+                              batch_x_q, _ in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
 
