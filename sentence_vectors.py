@@ -1,7 +1,7 @@
 import sys
 import numpy
 import os
-from theano import tensor as T
+from theano import tensor as T, function, printing
 import nn_layers
 import sgd_trainer
 from tqdm import tqdm
@@ -49,6 +49,12 @@ def main():
     numpy_rng = numpy.random.RandomState(123)
     q_max_sent_size = q_train.shape[1]
     a_max_sent_size = a_train.shape[1]
+
+    print 'q_train', q_train.shape
+    print 'q_dev', q_dev.shape
+    print 'q_test', q_test.shape
+
+    print 'q_overlap_train', q_overlap_train.shape
 
 
     ndim = 5
@@ -133,14 +139,29 @@ def main():
         hidden_layer,
     ])
     nnet_q.set_input((x_q, x_q_overlap))
-
+    print nnet_q
     ######
+    batch_x_q = T.lmatrix('batch_x_q')
+    batch_x_q_overlap = T.lmatrix('batch_x_q_overlap')
+
+    inputs_pred = [batch_x_q,batch_x_q_overlap]
+    givens_pred = {x_q: batch_x_q,x_q_overlap: batch_x_q_overlap}
+    output = nnet_q.layers[-1].result
+
+    output_fn = function(inputs=inputs_pred, outputs=output,givens=givens_pred)
+
+    def output_batch(batch_iterator):
+        preds = numpy.hstack([output_fn(batch_x_q, batch_x_q_overlap) for
+                              batch_x_q, batch_x_q_overlap, _ in batch_iterator])
+        return preds[:batch_iterator.n_samples]
+
 
 
     train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(numpy_rng, [q_train, q_overlap_train, y_train],batch_size=batch_size, randomize=True)
 
-    for i, (x_q, x_q_overlap, y) in enumerate(tqdm(train_set_iterator), 1):
-        print nnet_q.output_func((x_q,x_q_overlap))
+    o = output_batch(train_set_iterator)
+
+    print(o.shape)
 
 
 if __name__ == '__main__':

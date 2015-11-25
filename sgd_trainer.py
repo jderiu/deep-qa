@@ -50,16 +50,16 @@ class MiniBatchIteratorConstantBatchSize(object):
         for d in datasets:
           pad_size = batch_size - len(d) % batch_size
           pad = d[:pad_size]
-          # print 'd.shape, pad', d.shape, pad.shape
+          print 'd.shape, pad', d.shape, pad.shape
           padded_dataset = numpy.concatenate([d, pad])
           padded_datasets.append(padded_dataset)
         self.datasets = padded_datasets
         self.n_batches = (self.n_samples + self.batch_size - 1) / self.batch_size
-        # self.n_batches = self.n_samples / self.batch_size
+        self.n_batches = self.n_samples / self.batch_size
 
         self.randomize = randomize
-        # print 'n_samples', self.n_samples
-        # print 'n_batches', self.n_batches
+        print 'n_samples', self.n_samples
+        print 'n_batches', self.n_batches
 
     def __len__(self):
       return self.n_batches
