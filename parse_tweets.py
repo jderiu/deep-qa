@@ -25,6 +25,7 @@ def preprocess_tweet(tweet):
     if nUpper == tweet.__len__:
         tweet.append("<allcaps>")
 
+    return tweet
 def load_data(fname):
     tid,tweets = [],[]
     with open(fname) as f:
@@ -61,9 +62,9 @@ if __name__ == '__main__':
 
     all_fname = "semeval/all-merged.txt"
     files = ' '.join([train, dev, test])
-    subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
+    #subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
 
-    tid,tweet = load_data(all_fname)
+    tid,tweet = load_data(train)
     print "Number of tweets:",tweet.__len__()
 
     alphabet = Alphabet(start_feature_id=0)
