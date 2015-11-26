@@ -8,8 +8,8 @@ from tqdm import tqdm
 
 def main():
     data_dir = "semeval"
-    q_train = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tweets.npy'))
-    qids_test = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tids.npy'))
+    q_train = numpy.load(os.path.join(data_dir, 'all-merged.tweets.npy'))
+    qids_test = numpy.load(os.path.join(data_dir, 'all-merged.tids.npy'))
 
 
 
@@ -18,7 +18,7 @@ def main():
 
 
     # Load word2vec embeddings
-    fname = os.path.join(data_dir, 'emb_glove.twitter.27B.50d.txt.npy')
+    fname = os.path.join(data_dir, 'emb_sswe-u.txt.npy')
 
     print "Loading word embeddings from", fname
     vocab_emb = numpy.load(fname)
@@ -32,7 +32,7 @@ def main():
     n_outs = 2
 
     n_epochs = 25
-    batch_size = q_train.shape[0]
+    batch_size = q_train.shape[0] 
     learning_rate = 0.1
     max_norm = 0
 
@@ -48,7 +48,7 @@ def main():
     activation = T.tanh
 
     dropout_rate = 0.5
-    nkernels = 100
+    nkernels = 300
     q_k_max = 1
     a_k_max = 1
 
@@ -79,33 +79,29 @@ def main():
         lookup_table_words,
         join_layer,
         flatten_layer,
-        hidden_layer,
+
     ])
-    nnet_q.set_input(x_q)
+    nnet_q.set_input((x_q))
     print nnet_q
     ######
     batch_x_q = T.lmatrix('batch_x_q')
 
-    inputs_pred = [batch_x_q]
+    inputs_pred = [x_q]
     givens_pred = {x_q: batch_x_q}
-    output = nnet_q.layers[-1].result
+    output = nnet_q.layers[-1].output
 
-    output_fn = function(inputs=inputs_pred, outputs=output,givens=givens_pred)
+    output_fn = function(inputs=inputs_pred, outputs=output)
 
-    def output_batch(batch_iterator):
-        preds = numpy.hstack([output_fn(batch_x_q) for
-                              batch_x_q, _ in batch_iterator])
-        return preds[:batch_iterator.n_samples]
+    o = output_fn(q_train)
 
-
-
-    train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(numpy_rng, [q_train],batch_size=batch_size, randomize=True)
-
-    for tweet in q_train:
-        print output_fn(tweet)
-
-
-    print o.shape
+    file = open(os.path.join(data_dir,'twitter_sentence_vecs.txt'), 'w+')
+    counter = 0
+    for vec in o:
+	file.write(qids_test[counter])
+	for el in numpy.nditer(vec):
+		file.write(" %f" % el)
+	file.write("\n")
+	counter+=1
 
 
 

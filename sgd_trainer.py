@@ -49,7 +49,10 @@ class MiniBatchIteratorConstantBatchSize(object):
         padded_datasets = []
         for d in datasets:
 	  print len(d)
-          pad_size = batch_size - len(d) % batch_size
+	  if batch_size == len(d):
+		pad_size = 0
+          else:
+          	pad_size = batch_size - len(d) % batch_size
 	  print pad_size
           pad = d[:pad_size]
           print 'd.shape, pad', d.shape, pad.shape
