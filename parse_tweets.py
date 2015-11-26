@@ -10,6 +10,21 @@ from alphabet import Alphabet
 
 UNKNOWN_WORD_IDX = 0
 
+def preprocess_tweet(tweet):
+    nUpper = 0
+    for token in tweet:
+        if token.startswith("@"):
+            token = "<user>"
+        if token.startswith("http"):
+            token = "<url>"
+        if token.startswith("#"):
+            token.replace("#","<hashtag>",1)
+        if token.isupper():
+            nUpper += 1
+
+    if nUpper == tweet.__len__:
+        tweet.append("<allcaps>")
+
 def load_data(fname):
     tid,tweets = [],[]
     with open(fname) as f:
@@ -18,7 +33,7 @@ def load_data(fname):
             tweet = splits[3]
             if tweet != "Not Available\n":
                 tid.append(splits[0])
-                tweets.append(tweet.split(" "))
+                tweets.append(preprocess_tweet(tweet.split(" ")))
 
     return tid,tweets
 
