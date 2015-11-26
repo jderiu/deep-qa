@@ -18,10 +18,12 @@ def main():
     words = alphabet.keys()
     print "Vocab size", len(alphabet)
 
-    for fname in [
-                  'embeddings/glove.twitter.27B.50d.txt',
+
+    for fname,delimiter in [
+      ('embeddings/glove.twitter.27B.50d.txt',' '),
+      ('embeddings/sswe-u.txt','\t')
                   ]:
-      word2vec = load_glove_vec(fname, words)
+      word2vec = load_glove_vec(fname, words,delimiter)
 
 
       ndim = len(word2vec[word2vec.keys()[0]])
