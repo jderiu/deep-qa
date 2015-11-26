@@ -12,16 +12,16 @@ UNKNOWN_WORD_IDX = 0
 
 def preprocess_tweet(tweet):
     nUpper = 0
-    for token in tweet:
+    for i,token in enumerate(tweet):
         if token.startswith("@"):
-            token = "<user>"
+            tweet[i] = "<user>"
         if token.startswith("http"):
-            token = "<url>"
+            tweet[i] = "<url>"
         if token.startswith("#"):
             token.replace("#","<hashtag>",1)
         if token.isupper():
             nUpper += 1
-        token.lower()
+        tweet[i] = tweet[i].lower()
     if nUpper == tweet.__len__:
         tweet.append("<allcaps>")
 
