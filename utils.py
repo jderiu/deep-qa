@@ -177,7 +177,7 @@ def load_bin_vec(fname, words):
     return word_vecs
 
 
-def load_glove_vec(fname,words):
+def load_glove_vec(fname,words,delimiter):
   vocab = set(words)
   word_vecs = {}
   with open(fname) as f:
@@ -185,7 +185,7 @@ def load_glove_vec(fname,words):
     for line in f:
       if line == "":
         continue
-      splits = line.split(' ')
+      splits = line.split(delimiter)
       word = splits[0]
       if word in vocab:
         count += 1
