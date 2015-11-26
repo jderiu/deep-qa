@@ -4,7 +4,7 @@ import numpy as np
 import cPickle
 import subprocess
 from collections import defaultdict
-
+from nltk.tokenize import TweetTokenizer
 
 from alphabet import Alphabet
 
@@ -21,20 +21,21 @@ def preprocess_tweet(tweet):
             token.replace("#","<hashtag>",1)
         if token.isupper():
             nUpper += 1
-
+        token.lower()
     if nUpper == tweet.__len__:
         tweet.append("<allcaps>")
 
     return tweet
 def load_data(fname):
     tid,tweets = [],[]
+    tknzr = TweetTokenizer()
     with open(fname) as f:
         for line in f:
             splits = line.split('\t')
             tweet = splits[3]
             if tweet != "Not Available\n":
                 tid.append(splits[0])
-                tweets.append(preprocess_tweet(tweet.split(" ")))
+                tweets.append(preprocess_tweet(tknzr.tokenize(tweet)))
 
     return tid,tweets
 
