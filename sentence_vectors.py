@@ -177,7 +177,7 @@ def main():
 
     dev_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
         numpy_rng,
-        [dev_set],
+        dev_set,
         batch_size=batch_size,
         randomize=True)
 
