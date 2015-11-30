@@ -141,6 +141,7 @@ def main():
     cost = nnet_tweets.layers[-1].training_cost(y_train)
     predictions = nnet_tweets.layers[-1].y_pred
     predictions_prob = nnet_tweets.layers[-1].p_y_given_x[:, -1]
+    errors = nnet_tweets.layers[-1].errors(y_train)
 
     inputs_train = [batch_tweets, batch_y]
     givens_train = {tweets_train: batch_tweets,
@@ -173,7 +174,7 @@ def main():
 
     pred_prob_fn = theano.function(
         inputs=inputs_pred,
-        outputs=predictions_prob,
+        outputs=errors,
         givens=givens_pred
     )
 
