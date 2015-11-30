@@ -31,15 +31,15 @@ def preprocess_tweet(tweet):
 
 def convertSentiment(sentiment):
     return {
-        "positive" : 2,
-        "negative" : 0,
-        "neutral"  : 1,
+        "positive": 2,
+        "negative": 0,
+        "neutral" : 1,
         "objective-OR-neutral" : 1,
         "objective" :1
     }.get(sentiment,1)
 
 def load_data(fname):
-    tid,tweets = [],[]
+    tid,tweets,sentiments = [],[],[]
     tknzr = TweetTokenizer()
     with open(fname) as f:
         for line in f:
@@ -49,7 +49,8 @@ def load_data(fname):
             if tweet != "Not Available\n":
                 tid.append(splits[0])
                 tweets.append(preprocess_tweet(tknzr.tokenize(tweet)))
-    return tid,tweets,sentiment
+                sentiments.append(sentiment)
+    return tid,tweets,sentiments
 
 
 def add_to_vocab(data, alphabet):
