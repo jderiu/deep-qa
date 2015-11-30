@@ -35,7 +35,7 @@ def main():
     y = T.ivector('y_train')
 
     #######
-    n_outs = 2
+    n_outs = 3
     n_epochs = 25
     batch_size = 20
     learning_rate = 0.1
