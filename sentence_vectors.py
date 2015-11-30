@@ -65,7 +65,7 @@ def main():
     input_shape = (
         batch_size,
         num_input_channels,
-        q_max_sent_size + 2 * (max(filter_width) - 1),
+        q_max_sent_size + 2 * (filter_width - 1),
         ndim
     )
 
@@ -81,7 +81,7 @@ def main():
     #########
     lookup_table_words = nn_layers.LookupTableFastStatic(
         W=vocab_emb,
-        pad=max(filter_width)-1
+        pad=filter_width-1
     )
 
     conv = nn_layers.Conv2dLayer(

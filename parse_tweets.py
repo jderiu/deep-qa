@@ -70,7 +70,7 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=40):
   return data_idx
 
 if __name__ == '__main__':
-    outdir = "semeval"
+    outdir = "semeval_parsed"
     train = "semeval/task-B-train-plus-dev.tsv"
     test = "semeval/task-B-test2014-twitter.tsv"
     dev = "semeval/twitter-test-gold-B.downloaded.tsv"
