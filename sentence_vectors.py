@@ -12,11 +12,11 @@ from sklearn import metrics
 def main():
     data_dir = "semeval"
 
-    train_set = numpy.load(os.path.join(data_dir, 'all-merged.tweets.npy'))
-    dev_set = numpy.load(os.path.join(data_dir, 'all-merged.tids.npy'))
+    train_set = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tweets.npy'))
+    dev_set = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.tweets.npy'))
 
-    y_train_set = numpy.load(os.path.join(data_dir, 'all-merged.tweets.npy'))
-    y_dev_set = numpy.load(os.path.join(data_dir, 'all-merged.tweets.npy'))
+    y_train_set = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.sentiments.npy'))
+    y_dev_set = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.sentiments.npy'))
 
 
     numpy_rng = numpy.random.RandomState(123)
