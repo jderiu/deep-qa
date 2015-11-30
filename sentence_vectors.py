@@ -18,8 +18,8 @@ def main():
     y_train_set = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.sentiments.npy'))
     y_dev_set = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.sentiments.npy'))
 
-    train_set, y_train_set = [(x,y) for x,y in zip(train_set,y_train_set) if y != 1]
-    dev_set, y_dev_set = [(x,y) for x,y in zip(dev_set,y_dev_set) if y != 1]
+    train_set, y_train_set = zip(*[(x,y) for x,y in zip(train_set,y_train_set) if y != 1])
+    dev_set, y_dev_set = zip(*[(x,y) for x,y in zip(dev_set,y_dev_set) if y != 1])
 
 
     numpy_rng = numpy.random.RandomState(123)
