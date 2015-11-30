@@ -31,11 +31,8 @@ def main():
     dummpy_word_idx = numpy.max(train_set)
     print "Word embedding matrix size:", vocab_emb.shape
 
-    tweets_train = T.lmatrix('tweets_train')
-    y_train = T.ivector('y_train')
-
-    tweets_dev = T.lmatrix('tweets_dev')
-    y_dev = T.ivector('y_dev')
+    tweets = T.lmatrix('tweets_train')
+    y = T.ivector('y_train')
 
     #######
     n_outs = 2
@@ -122,7 +119,7 @@ def main():
         classifier
     ])
 
-    nnet_tweets.set_input(tweets_train)
+    nnet_tweets.set_input(tweets)
     print nnet_tweets
     ######
 
@@ -138,16 +135,16 @@ def main():
     batch_y = T.ivector('batch_y')
 
     params = nnet_tweets.params
-    cost = nnet_tweets.layers[-1].training_cost(y_train)
+    cost = nnet_tweets.layers[-1].training_cost(y)
     predictions = nnet_tweets.layers[-1].y_pred
     predictions_prob = nnet_tweets.layers[-1].p_y_given_x[:, -1]
 
     inputs_train = [batch_tweets, batch_y]
-    givens_train = {tweets_train: batch_tweets,
-                    y_train: batch_y}
+    givens_train = {tweets: batch_tweets,
+                    y: batch_y}
 
     inputs_pred = [batch_tweets]
-    givens_pred = {tweets_dev:batch_tweets}
+    givens_pred = {tweets:batch_tweets}
 
     updates = sgd_trainer.get_adadelta_updates(
         cost,
@@ -163,12 +160,6 @@ def main():
         outputs=cost,
         updates=updates,
         givens=givens_train
-    )
-
-    pred_fn = theano.function(
-        inputs=inputs_pred,
-        outputs=predictions,
-        givens=givens_pred
     )
 
     pred_prob_fn = theano.function(
@@ -215,7 +206,7 @@ def main():
 
             if i % 10 == 0 or i == num_train_batches:
                 y_pred_dev = predict_prob_batch(dev_set_iterator)
-                dev_acc = metrics.roc_auc_score(y_dev, y_pred_dev) * 100
+                dev_acc = metrics.roc_auc_score(y_dev_set, y_pred_dev) * 100
                 if dev_acc > best_dev_acc:
                     print('epoch: {} batch: {} dev auc: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, i, dev_acc,best_dev_acc))
                     best_dev_acc = dev_acc
