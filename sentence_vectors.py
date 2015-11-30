@@ -141,14 +141,13 @@ def main():
     cost = nnet_tweets.layers[-1].training_cost(y_train)
     predictions = nnet_tweets.layers[-1].y_pred
     predictions_prob = nnet_tweets.layers[-1].p_y_given_x[:, -1]
-    errors = nnet_tweets.layers[-1].errors(y_train)
 
     inputs_train = [batch_tweets, batch_y]
     givens_train = {tweets_train: batch_tweets,
                     y_train: batch_y}
 
     inputs_pred = [batch_tweets]
-    givens_pred = {tweets_train:batch_tweets}
+    givens_pred = {tweets_dev:batch_tweets}
 
     updates = sgd_trainer.get_adadelta_updates(
         cost,
@@ -174,7 +173,7 @@ def main():
 
     pred_prob_fn = theano.function(
         inputs=inputs_pred,
-        outputs=errors,
+        outputs=predictions_prob,
         givens=givens_pred
     )
 
