@@ -10,6 +10,7 @@ from alphabet import Alphabet
 
 UNKNOWN_WORD_IDX = 0
 
+
 def preprocess_tweet(tweet):
     nUpper = 0
     for i,token in enumerate(tweet):
@@ -18,7 +19,7 @@ def preprocess_tweet(tweet):
         if token.startswith("http"):
             tweet[i] = "<url>"
         if token.startswith("#"):
-            token.replace("#","<hashtag>",1)
+            tweet[i] = "<hashtag>"
         if token.isupper():
             nUpper += 1
         tweet[i] = tweet[i].lower()
@@ -26,6 +27,17 @@ def preprocess_tweet(tweet):
         tweet.append("<allcaps>")
 
     return tweet
+
+
+def convertSentiment(sentiment):
+    return {
+        "positive" : 2,
+        "negative" : 0,
+        "neutral"  : 1,
+        "objective-OR-neutral" : 1,
+        "objective" :1
+    }.get(sentiment,1)
+
 def load_data(fname):
     tid,tweets = [],[]
     tknzr = TweetTokenizer()
@@ -33,16 +45,18 @@ def load_data(fname):
         for line in f:
             splits = line.split('\t')
             tweet = splits[3]
+            sentiment = convertSentiment(splits[2])
             if tweet != "Not Available\n":
                 tid.append(splits[0])
                 tweets.append(preprocess_tweet(tknzr.tokenize(tweet)))
+    return tid,tweets,sentiment
 
-    return tid,tweets
 
 def add_to_vocab(data, alphabet):
-  for sentence in data:
-    for token in sentence:
-      alphabet.add(token)
+    for sentence in data:
+        for token in sentence:
+            alphabet.add(token)
+
 
 def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=40):
   data_idx = []
@@ -59,30 +73,31 @@ if __name__ == '__main__':
     outdir = "semeval"
     train = "semeval/task-B-train-plus-dev.tsv"
     test = "semeval/task-B-test2014-twitter.tsv"
-    dev = "semeval/twitter-test-gold-B.downloaded.dev"
-
-    all_fname = "semeval/all-merged.txt"
-    files = ' '.join([train, dev, test])
-    #subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
-
-    tid,tweet = load_data(train)
-    print "Number of tweets:",tweet.__len__()
+    dev = "semeval/twitter-test-gold-B.downloaded.tsv"
+    test15 = "semeval/task-B-test2015-twitter.tsv"
 
     alphabet = Alphabet(start_feature_id=0)
     alphabet.add('UNKNOWN_WORD_IDX')
-
-    add_to_vocab(tweet, alphabet)
-
-    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab.pickle'), 'w'))
-    print "alphabet", len(alphabet)
-
-    max_tweet_len = max(map(lambda x: len(x), tweet))
-    print "Max tweet lenght:", max_tweet_len
-
     dummy_word_idx = alphabet.fid
 
-    tweet_idx = convert2indices(tweet, alphabet, dummy_word_idx, max_tweet_len)
+    all_fname = "semeval/all-merged.txt"
+    files = ' '.join([train, dev, test,test15])
+    subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
+    tid, tweets, sentiments = load_data(all_fname)
+    add_to_vocab(tweets, alphabet)
+    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab.pickle'), 'w'))
+    print "alphabet", len(alphabet)
+    max_tweet_len = max(map(lambda x: len(x), tweets))
+    print "Max tweet lenght:", max_tweet_len
 
-    basename, _ = os.path.splitext(os.path.basename(train))
-    np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
-    np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
+    files = [train,dev,test,test15]
+    for fname in files:
+        tid, tweets, sentiments = load_data(fname)
+        print "Number of tweets:",tweets.__len__()
+
+        tweet_idx = convert2indices(tweets, alphabet, dummy_word_idx, max_tweet_len)
+
+        basename, _ = os.path.splitext(os.path.basename(fname))
+        np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
+        np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
+        np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
