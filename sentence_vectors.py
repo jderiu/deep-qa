@@ -18,13 +18,13 @@ def main():
     y_train_set = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.sentiments.npy'))
     y_dev_set = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.sentiments.npy'))
 
-    y_filter_train = [True if y!= 1 else False for y in y_train_set]
-    train_set = train_set[numpy.where(y_filter_train)]
-    y_train_set = train_set[numpy.where(y_filter_train)]
+    y_filter_train = [True if y != 1 else False for y in y_train_set]
+    train_set = train_set[y_filter_train]
+    y_train_set = y_train_set[y_filter_train]
 
-    y_filter_dev = [True if y!= 1 else False for y in y_dev_set]
-    dev_set = train_set[numpy.where(dev_set)]
-    y_dev_set = train_set[numpy.where(y_dev_set)]
+    y_filter_dev = [True if y != 1 else False for y in y_dev_set]
+    dev_set = dev_set[y_filter_dev]
+    y_dev_set = y_dev_set[y_filter_dev]
 
     numpy_rng = numpy.random.RandomState(123)
     q_max_sent_size = train_set.shape[1]
