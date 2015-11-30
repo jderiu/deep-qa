@@ -10,7 +10,7 @@ import time
 from sklearn import metrics
 
 def main():
-    data_dir = "semeval"
+    data_dir = "semeval_parsed"
 
     train_set = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tweets.npy'))
     dev_set = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.tweets.npy'))
@@ -197,8 +197,8 @@ def main():
     num_train_batches = len(train_set_iterator)
     while epoch < n_epochs:
         timer = time.time()
-        for i, (tweet, y) in enumerate(tqdm(train_set_iterator), 1):
-            train_fn(tweet, y)
+        for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator), 1):
+            train_fn(tweet, y_label)
 
             # Make sure the null word in the word embeddings always remains zero
             if ZEROUT_DUMMY_WORD:
