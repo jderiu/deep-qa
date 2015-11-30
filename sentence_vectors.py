@@ -177,9 +177,9 @@ def main():
 
     dev_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
         numpy_rng,
-        [dev_set,y_dev_set],
+        [dev_set],
         batch_size=batch_size,
-        randomize=False)
+        randomize=True)
 
     def predict_prob_batch(batch_iterator):
         preds = numpy.hstack([pred_prob_fn(batch_x_q) for batch_x_q in batch_iterator])
