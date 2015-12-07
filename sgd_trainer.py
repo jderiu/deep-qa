@@ -61,7 +61,6 @@ class MiniBatchIteratorConstantBatchSize(object):
 	  print 'padded dataset',padded_dataset.shape
         self.datasets = padded_datasets
         self.n_batches = (self.n_samples + self.batch_size - 1) / self.batch_size
-        self.n_batches = self.n_samples / self.batch_size
 
         self.randomize = randomize
         print 'n_samples', self.n_samples

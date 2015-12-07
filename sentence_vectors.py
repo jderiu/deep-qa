@@ -25,8 +25,8 @@ def main():
 
     train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .3)]
     dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * .3):int(len(smiley_set_tweets) * .35)]
-    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_tweets) * .3)]
-    y_dev_set = smiley_set_seniments[int(len(smiley_set_tweets) * .3):int(len(smiley_set_tweets) * .35)]
+    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * .3)]
+    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * .3):int(len(smiley_set_seniments) * .35)]
     
     print "Length trains_set:", len(train_set)
     print "Length dev_set:", len(dev_set)
@@ -197,6 +197,8 @@ def main():
 
     def predict_prob_batch(batch_iterator):
         preds = numpy.hstack([pred_prob_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
+        print len(preds)
+        print batch_iterator.n_samples
         return preds[:batch_iterator.n_samples]
 
 
@@ -213,7 +215,6 @@ def main():
         timer = time.time()
         for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator), 1):
             train_fn(tweet, y_label)
-
             # Make sure the null word in the word embeddings always remains zero
             if ZEROUT_DUMMY_WORD:
                 zerout_dummy_word()
