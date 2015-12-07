@@ -5,7 +5,7 @@ import cPickle
 import subprocess
 from collections import defaultdict
 from nltk.tokenize import TweetTokenizer
-
+import parse_tweets_sheffield as pts
 from alphabet import Alphabet
 
 UNKNOWN_WORD_IDX = 0
@@ -85,11 +85,23 @@ if __name__ == '__main__':
     files = ' '.join([train, dev, test,test15])
     subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
     tid, tweets, sentiments = load_data(all_fname)
+    tweets_sh, sentiments_sh = pts.load_data("semeval/smiley_tweets.gz")
+
     add_to_vocab(tweets, alphabet)
+    add_to_vocab(tweets_sh,alphabet)
     cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab.pickle'), 'w'))
     print "alphabet", len(alphabet)
+
+
     max_tweet_len = max(map(lambda x: len(x), tweets))
     print "Max tweet lenght:", max_tweet_len
+    max_tweet_len_sh = max(map(lambda x: len(x), tweets_sh))
+    max_tweet_len = max([max_tweet_len,max_tweet_len_sh])
+
+    tweet_idx = convert2indices(tweets_sh, alphabet, dummy_word_idx, max_tweet_len)
+    basename, _ = os.path.splitext(os.path.basename("smiley_twets"))
+    np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
+    np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments_sh)
 
     files = [train,dev,test,test15]
     for fname in files:
@@ -102,3 +114,4 @@ if __name__ == '__main__':
         np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
         np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
         np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
+
