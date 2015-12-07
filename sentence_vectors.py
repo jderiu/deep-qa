@@ -12,22 +12,20 @@ from sklearn import metrics
 def main():
     data_dir = "semeval_parsed"
 
-    train_set = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tweets.npy'))
-    dev_set = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.tweets.npy'))
+    smiley_set_tweets = numpy.load(os.path.join(data_dir, 'smiley_tweets.npy'))
+    smiley_set_seniments = numpy.load(os.path.join(data_dir, 'smiley_tweets.sentiments.npy'))
 
-    y_train_set = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.sentiments.npy'))
-    y_dev_set = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.sentiments.npy'))
+    smiley_set = zip(smiley_set_tweets,smiley_set_seniments)
+    numpy.random.shuffle(smiley_set)
+    smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
 
-    y_filter_train = [True if y != 1 else False for y in y_train_set]
-    train_set = train_set[y_filter_train]
-    y_train_set = y_train_set[y_filter_train]
-
-    y_filter_dev = [True if y != 1 else False for y in y_dev_set]
-    dev_set = dev_set[y_filter_dev]
-    y_dev_set = y_dev_set[y_filter_dev]
+    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .9)]
+    dev_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .9)]
+    y_train_set = smiley_set_tweets[int(len(smiley_set_tweets) * .9):]
+    y_dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * .9):]
 
     numpy_rng = numpy.random.RandomState(123)
-    q_max_sent_size = train_set.shape[1]
+    q_max_sent_size = smiley_set_tweets.shape[1]
 
     # Load word2vec embeddings
     fname_wordembeddings = os.path.join(data_dir, 'emb_sswe-u.txt.npy')
@@ -35,7 +33,7 @@ def main():
     print "Loading word embeddings from", fname_wordembeddings
     vocab_emb = numpy.load(fname_wordembeddings)
     ndim = vocab_emb.shape[1]
-    dummpy_word_idx = numpy.max(train_set)
+    dummpy_word_idx = numpy.max(smiley_set_tweets)
     print "Word embedding matrix size:", vocab_emb.shape
 
     tweets = T.lmatrix('tweets_train')
