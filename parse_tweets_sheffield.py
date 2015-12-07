@@ -41,9 +41,10 @@ def convertSentiment(tweet):
     for emo,score in emo_dict.iteritems():
         sentiment += score*tweet.count(emo)
         tweet = tweet.replace(emo,"")
-    return tweet, sentiment
+    return tweet, np.sign(sentiment)
 
 def load_data(fname):
+    read_emo('emoscores')
     tweets,sentiments = [],[]
     tknzr = TweetTokenizer()
     with gzip.open(fname) as f:
@@ -55,6 +56,5 @@ def load_data(fname):
     return tweets,sentiments
 
 if __name__ == '__main__':
-    read_emo('emoscores')
     tweets, sentiments = load_data("semeval/smiley_tweets.gz")
     print len(tweets)

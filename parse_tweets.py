@@ -94,11 +94,11 @@ if __name__ == '__main__':
 
 
     max_tweet_len = max(map(lambda x: len(x), tweets))
-    print "Max tweet lenght:", max_tweet_len
     max_tweet_len_sh = max(map(lambda x: len(x), tweets_sh))
     max_tweet_len = max([max_tweet_len,max_tweet_len_sh])
-
+    print "Max tweet lenght:", max_tweet_len
     tweet_idx = convert2indices(tweets_sh, alphabet, dummy_word_idx, max_tweet_len)
+    print "Number of tweets:", len(tweets_sh)
     basename, _ = os.path.splitext(os.path.basename("smiley_twets"))
     np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
     np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments_sh)

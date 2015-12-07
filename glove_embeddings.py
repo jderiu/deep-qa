@@ -9,7 +9,7 @@ def main():
   np.random.seed(123)
 
   data_dirs = [
-              'semeval'
+              'semeval_parsed'
               ]
 
   for data_dir in data_dirs:
