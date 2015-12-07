@@ -12,17 +12,26 @@ from sklearn import metrics
 def main():
     data_dir = "semeval_parsed"
 
-    smiley_set_tweets = numpy.load(os.path.join(data_dir, 'smiley_tweets.npy'))
-    smiley_set_seniments = numpy.load(os.path.join(data_dir, 'smiley_tweets.sentiments.npy'))
+    smiley_set_tweets = numpy.load(os.path.join(data_dir, 'smiley_twets.tweets.npy'))
+    smiley_set_seniments = numpy.load(os.path.join(data_dir, 'smiley_twets.sentiments.npy'))
+
+    smiley_set_seniments=smiley_set_seniments.astype(int)
+    smiley_set_seniments=numpy.asarray([0 if x==-1 else 1 for x in smiley_set_seniments])
+    print smiley_set_seniments    
 
     smiley_set = zip(smiley_set_tweets,smiley_set_seniments)
     numpy.random.shuffle(smiley_set)
     smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
 
-    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .9)]
-    dev_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .9)]
-    y_train_set = smiley_set_tweets[int(len(smiley_set_tweets) * .9):]
-    y_dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * .9):]
+    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .3)]
+    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * .3):int(len(smiley_set_tweets) * .35)]
+    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_tweets) * .3)]
+    y_dev_set = smiley_set_seniments[int(len(smiley_set_tweets) * .3):int(len(smiley_set_tweets) * .35)]
+    
+    print "Length trains_set:", len(train_set)
+    print "Length dev_set:", len(dev_set)
+    print "Length y_trains_set:", len(y_train_set)
+    print "Length y_dev_set:", len(y_dev_set)
 
     numpy_rng = numpy.random.RandomState(123)
     q_max_sent_size = smiley_set_tweets.shape[1]
@@ -37,12 +46,12 @@ def main():
     print "Word embedding matrix size:", vocab_emb.shape
 
     tweets = T.lmatrix('tweets_train')
-    y = T.ivector('y_train')
+    y = T.lvector('y_train')
 
     #######
     n_outs = 2
-    n_epochs = 25
-    batch_size = 20
+    n_epochs = 5
+    batch_size = 50
     learning_rate = 0.1
     max_norm = 0
 
@@ -137,7 +146,7 @@ def main():
     ZEROUT_DUMMY_WORD = True
 
     batch_tweets= T.lmatrix('batch_x_q')
-    batch_y = T.ivector('batch_y')
+    batch_y = T.lvector('batch_y')
 
     params = nnet_tweets.params
     cost = nnet_tweets.layers[-1].training_cost(y)
@@ -209,7 +218,7 @@ def main():
             if ZEROUT_DUMMY_WORD:
                 zerout_dummy_word()
 
-            if i % 10 == 0 or i == num_train_batches:
+            if i % 500 == 0 or i == num_train_batches:
                 y_pred_dev = predict_prob_batch(dev_set_iterator)
                 dev_acc = metrics.roc_auc_score(y_dev_set, y_pred_dev) * 100
                 if dev_acc > best_dev_acc:

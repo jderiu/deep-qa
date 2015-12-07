@@ -49,7 +49,7 @@ def load_data(fname):
             if tweet != "Not Available\n":
                 tid.append(splits[0])
                 tweets.append(preprocess_tweet(tknzr.tokenize(tweet)))
-                sentiments.append(sentiment)
+                sentiments.append(int(sentiment))
     return tid,tweets,sentiments
 
 
