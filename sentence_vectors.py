@@ -250,22 +250,33 @@ def main():
     test_tweets = numpy.load(os.path.join(data_dir, 'all-merged.tweets.npy'))
     qids_test = numpy.load(os.path.join(data_dir, 'all-merged.tids.npy'))
 
-    inputs_senvec = [test_tweets]
+    inputs_senvec = [batch_tweets]
+    givents_senvec = {tweets:batch_tweets}
 
     output = nnet_tweets.layers[-2].output
 
-    output_fn = function(inputs=inputs_senvec, outputs=output)
+    output_fn = function(inputs=inputs_senvec, outputs=output,givens=givents_senvec)
 
-    o = output_fn(train_set)
 
-    fs = open(os.path.join(data_dir,'twitter_sentence_vecs.txt'), 'w+')
+    test_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
+        numpy_rng,
+        [test_tweets],
+        batch_size=batch_size,
+        randomize=False
+    )
+
     counter = 0
-    for vec in o:
-        fs.write(qids_test[counter])
-        for el in numpy.nditer(vec):
-            fs.write(" %f" % el)
-            fs.write("\n")
-        counter+=1
+    fname = open(os.path.join(data_dir,'twitter_sentence_vecs.txt'), 'w+')
+    for i, (tweet) in enumerate(tqdm(test_set_iterator), 1):
+        o = output_fn(tweet[0])
+        for vec in o:
+            fname.write(qids_test[counter])
+            for el in numpy.nditer(vec):
+                fname.write(" %f" % el)
+            fname.write("\n")
+            counter+=1
+            if counter == test_set_iterator.n_samples:
+                break
 
 if __name__ == '__main__':
     main()
