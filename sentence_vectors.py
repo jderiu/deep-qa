@@ -1,4 +1,4 @@
-import sys
+import cPickle
 import numpy
 import os
 import theano
@@ -241,6 +241,10 @@ def main():
         params[i].set_value(param, borrow=True)
 
     nnet_tweets.params = params
+
+    f = file('objects.save','wb')
+    for layer in nnet_tweets.layers:
+        cPickle.dump(layer,f,protocol=cPickle.HIGHEST_PROTOCOL)
 
     #######################
     # Get Sentence Vectors#
