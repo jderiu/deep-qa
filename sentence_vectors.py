@@ -23,10 +23,10 @@ def main():
     numpy.random.shuffle(smiley_set)
     smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
 
-    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .3)]
-    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * .3):int(len(smiley_set_tweets) * .35)]
-    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * .3)]
-    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * .3):int(len(smiley_set_seniments) * .35)]
+    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .001)]
+    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * .001):int(len(smiley_set_tweets) * .0011)]
+    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * .001)]
+    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * .001):int(len(smiley_set_seniments) * .0011)]
     
     print "Length trains_set:", len(train_set)
     print "Length dev_set:", len(dev_set)
@@ -197,8 +197,6 @@ def main():
 
     def predict_prob_batch(batch_iterator):
         preds = numpy.hstack([pred_prob_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
-        print len(preds)
-        print batch_iterator.n_samples
         return preds[:batch_iterator.n_samples]
 
 
@@ -242,7 +240,7 @@ def main():
 
     nnet_tweets.params = params
 
-    f = file('objects.save','wb')
+    f = open('objects.save','wb')
     for layer in nnet_tweets.layers:
         cPickle.dump(layer,f,protocol=cPickle.HIGHEST_PROTOCOL)
 
@@ -260,13 +258,13 @@ def main():
 
     o = output_fn(train_set)
 
-    file = open(os.path.join(data_dir,'twitter_sentence_vecs.txt'), 'w+')
+    fs = open(os.path.join(data_dir,'twitter_sentence_vecs.txt'), 'w+')
     counter = 0
     for vec in o:
-        file.write(qids_test[counter])
+        fs.write(qids_test[counter])
         for el in numpy.nditer(vec):
-            file.write(" %f" % el)
-            file.write("\n")
+            fs.write(" %f" % el)
+            fs.write("\n")
         counter+=1
 
 if __name__ == '__main__':
