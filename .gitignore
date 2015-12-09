@@ -5,3 +5,5 @@ TRAIN-ALL
 embeddings
 .idea/
 .py~
+semeval
+semeval_parsed
