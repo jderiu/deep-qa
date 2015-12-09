@@ -8,6 +8,7 @@ import sgd_trainer
 from tqdm import tqdm
 import time
 from sklearn import metrics
+from collections import Counter
 
 def main():
     data_dir = "semeval_parsed"
@@ -23,10 +24,12 @@ def main():
     numpy.random.shuffle(smiley_set)
     smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
 
-    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .001)]
-    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * .001):int(len(smiley_set_tweets) * .0011)]
-    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * .001)]
-    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * .001):int(len(smiley_set_seniments) * .0011)]
+    print Counter(smiley_set_seniments)
+
+    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .95)]
+    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * .95):int(len(smiley_set_tweets) * 1)]
+    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * .95)]
+    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * .95):int(len(smiley_set_seniments) * 1)]
     
     print "Length trains_set:", len(train_set)
     print "Length dev_set:", len(dev_set)
@@ -37,7 +40,7 @@ def main():
     q_max_sent_size = smiley_set_tweets.shape[1]
 
     # Load word2vec embeddings
-    fname_wordembeddings = os.path.join(data_dir, 'emb_sswe-u.txt.npy')
+    fname_wordembeddings = os.path.join(data_dir, 'emb_glove.twitter.27B.50d.txt.npy')
 
     print "Loading word embeddings from", fname_wordembeddings
     vocab_emb = numpy.load(fname_wordembeddings)
@@ -217,7 +220,7 @@ def main():
             if ZEROUT_DUMMY_WORD:
                 zerout_dummy_word()
 
-            if i % 500 == 0 or i == num_train_batches:
+            if i % 2000 == 0 or i == num_train_batches:
                 y_pred_dev = predict_prob_batch(dev_set_iterator)
                 dev_acc = metrics.roc_auc_score(y_dev_set, y_pred_dev) * 100
                 if dev_acc > best_dev_acc:

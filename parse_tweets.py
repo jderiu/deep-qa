@@ -81,7 +81,7 @@ if __name__ == '__main__':
     alphabet.add('UNKNOWN_WORD_IDX')
     dummy_word_idx = alphabet.fid
 
-    all_fname = "semeval/all-merged.txt"
+    all_fname = "semeval_parsed/all-merged.txt"
     files = ' '.join([train, dev, test,test15])
     subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
     tid, tweets, sentiments = load_data(all_fname)
@@ -97,12 +97,22 @@ if __name__ == '__main__':
     max_tweet_len_sh = max(map(lambda x: len(x), tweets_sh))
     max_tweet_len = max([max_tweet_len,max_tweet_len_sh])
     print "Max tweet lenght:", max_tweet_len
+
+	#save sheffield tweets
     tweet_idx = convert2indices(tweets_sh, alphabet, dummy_word_idx, max_tweet_len)
     print "Number of tweets:", len(tweets_sh)
     basename, _ = os.path.splitext(os.path.basename("smiley_twets"))
     np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
     np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments_sh)
 
+	#save semeval tweets all
+    tweet_idx = convert2indices(tweets, alphabet, dummy_word_idx, max_tweet_len)
+    print "Number of tweets:", len(tweets)
+    basename, _ = os.path.splitext(os.path.basename("all-merged"))
+    np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
+    np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
+
+	#save semeval tweets seperate
     files = [train,dev,test,test15]
     for fname in files:
         tid, tweets, sentiments = load_data(fname)
