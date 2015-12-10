@@ -81,7 +81,7 @@ if __name__ == '__main__':
     alphabet.add('UNKNOWN_WORD_IDX')
     dummy_word_idx = alphabet.fid
 
-    all_fname = "semeval_parsed/all-merged.txt"
+    all_fname = "semeval/all-merged.txt"
     files = ' '.join([train, dev, test,test15])
     subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
     print "Loading SemEval data"
