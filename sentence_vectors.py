@@ -11,7 +11,7 @@ from sklearn import metrics
 from collections import Counter
 
 def main():
-    data_dir = "semeval_parsed"
+    data_dir = "/cluster/work/scr2/jderiu/semeval"
 
     smiley_set_tweets = numpy.load(os.path.join(data_dir, 'smiley_twets.tweets.npy'))
     smiley_set_seniments = numpy.load(os.path.join(data_dir, 'smiley_twets.sentiments.npy'))
@@ -53,7 +53,7 @@ def main():
 
     #######
     n_outs = 2
-    n_epochs = 5
+    n_epochs = 25
     batch_size = 50
     learning_rate = 0.1
     max_norm = 0

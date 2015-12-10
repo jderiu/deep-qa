@@ -71,7 +71,7 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=40):
   return data_idx
 
 if __name__ == '__main__':
-    outdir = "semeval_parsed"
+    outdir = "/cluster/work/scr2/jderiu/semeval"
     train = "semeval/task-B-train-plus-dev.tsv"
     test = "semeval/task-B-test2014-twitter.tsv"
     dev = "semeval/twitter-test-gold-B.downloaded.tsv"
@@ -84,8 +84,12 @@ if __name__ == '__main__':
     all_fname = "semeval_parsed/all-merged.txt"
     files = ' '.join([train, dev, test,test15])
     subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
+    print "Loading SemEval data"
     tid, tweets, sentiments = load_data(all_fname)
-    tweets_sh, sentiments_sh = pts.load_data("semeval/smiley_tweets.gz")
+    print "Loading Smiley Data"
+    tweets_sh, sentiments_sh = pts.load_data("/cluster/work/scr2/jderiu/smiley_tweets_small.gz")
+
+    print "Done Loading"
 
     add_to_vocab(tweets, alphabet)
     add_to_vocab(tweets_sh,alphabet)
@@ -109,6 +113,7 @@ if __name__ == '__main__':
     tweet_idx = convert2indices(tweets, alphabet, dummy_word_idx, max_tweet_len)
     print "Number of tweets:", len(tweets)
     basename, _ = os.path.splitext(os.path.basename("all-merged"))
+    np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
     np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
     np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
 

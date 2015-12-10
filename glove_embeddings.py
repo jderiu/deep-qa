@@ -9,7 +9,7 @@ def main():
   np.random.seed(123)
 
   data_dirs = [
-              'semeval_parsed'
+              '/cluster/work/scr2/jderiu/semeval'
               ]
 
   for data_dir in data_dirs:
@@ -18,11 +18,8 @@ def main():
     words = alphabet.keys()
     print "Vocab size", len(alphabet)
 
-
     for fname,delimiter in [
-      ('embeddings/glove.twitter.27B.50d.txt',' '),
-      ('embeddings/sswe-u.txt','\t')
-                  ]:
+      ('embeddings/glove.twitter.27B.50d.txt',' ')]:
       word2vec = load_glove_vec(fname, words,delimiter)
 
 
@@ -35,7 +32,6 @@ def main():
         word_vec = word2vec.get(word, None)
         if word_vec is None:
           word_vec = np.random.uniform(-0.25, 0.25, ndim)
-
           random_words_count += 1
         vocab_emb[idx] = word_vec
       print "Using zero vector as random"

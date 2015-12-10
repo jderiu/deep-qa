@@ -7,6 +7,7 @@ from collections import defaultdict
 from nltk.tokenize import TweetTokenizer
 from alphabet import Alphabet
 import gzip
+import io
 
 def preprocess_tweet(tweet):
     nUpper = 0
@@ -47,12 +48,16 @@ def load_data(fname):
     read_emo('emoscores')
     tweets,sentiments = [],[]
     tknzr = TweetTokenizer()
-    with gzip.open(fname) as f:
+    counter = 0
+    with gzip.open(fname,'r') as f:
         for tweet in f:
             tweet,sentiment = convertSentiment(tweet)
             if sentiment != 0:
                 tweets.append(preprocess_tweet(tknzr.tokenize(tweet)))
                 sentiments.append(sentiment)
+            counter += 1
+            if (counter%10000) == 0:
+                print "Elements processed:",counter
     return tweets,sentiments
 
 if __name__ == '__main__':
