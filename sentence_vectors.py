@@ -26,10 +26,10 @@ def main():
 
     print Counter(smiley_set_seniments)
 
-    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * .95)]
-    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * .95):int(len(smiley_set_tweets) * 1)]
-    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * .95)]
-    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * .95):int(len(smiley_set_seniments) * 1)]
+    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.01)]
+    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.01):int(len(smiley_set_tweets) * 0.011)]
+    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.01)]
+    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.01):int(len(smiley_set_seniments) * 0.011)]
     
     print "Length trains_set:", len(train_set)
     print "Length dev_set:", len(dev_set)
