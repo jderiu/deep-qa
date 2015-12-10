@@ -70,7 +70,7 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=40):
     data_idx.append(ex)
   data_idx = np.array(data_idx).astype('int32')
   counter += 1
-  if (counter%10000) == 0
+  if (counter%10000) == 0:
     print "Number of indexed sentences:",counter
   return data_idx
 
