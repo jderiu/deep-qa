@@ -2,6 +2,7 @@
 exp.out
 TRAIN
 TRAIN-ALL
+embeddings
 .idea/
 .py~
 semeval_parsed
