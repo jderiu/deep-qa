@@ -10,8 +10,11 @@ import time
 from sklearn import metrics
 from collections import Counter
 
+CL_DIR = "/cluster/work/scr2/jderiu/semeval"
+HOME_DIR = "semeval_parsed"
+
 def main():
-    data_dir = "/cluster/work/scr2/jderiu/semeval"
+    data_dir = CL_DIR
 
     smiley_set_tweets = numpy.load(os.path.join(data_dir, 'smiley_twets.tweets.npy'))
     smiley_set_seniments = numpy.load(os.path.join(data_dir, 'smiley_twets.sentiments.npy'))

@@ -70,8 +70,11 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=40):
   data_idx = np.array(data_idx).astype('int32')
   return data_idx
 
+CL_DIR = "/cluster/work/scr2/jderiu/semeval"
+HOME_DIR = "semeval_parsed"
+
 if __name__ == '__main__':
-    outdir = "/cluster/work/scr2/jderiu/semeval"
+    outdir = CL_DIR
     train = "semeval/task-B-train-plus-dev.tsv"
     test = "semeval/task-B-test2014-twitter.tsv"
     dev = "semeval/twitter-test-gold-B.downloaded.tsv"
@@ -87,7 +90,7 @@ if __name__ == '__main__':
     print "Loading SemEval data"
     tid, tweets, sentiments = load_data(all_fname)
     print "Loading Smiley Data"
-    tweets_sh, sentiments_sh = pts.load_data("/cluster/work/scr2/jderiu/smiley_tweets_small.gz")
+    tweets_sh, sentiments_sh = pts.load_data("/cluster/work/scr2/jderiu/smiley_tweets_10M.gz")
 
     print "Done Loading"
 

@@ -5,11 +5,14 @@ import os
 from alphabet import Alphabet
 from utils import load_glove_vec
 
+CL_DIR = "/cluster/work/scr2/jderiu/semeval"
+HOME_DIR = "semeval_parsed"
+
 def main():
   np.random.seed(123)
 
   data_dirs = [
-              '/cluster/work/scr2/jderiu/semeval'
+              CL_DIR
               ]
 
   for data_dir in data_dirs:
