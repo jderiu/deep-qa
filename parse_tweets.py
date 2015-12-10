@@ -61,6 +61,7 @@ def add_to_vocab(data, alphabet):
 
 def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=40):
   data_idx = []
+  counter = 0
   for sentence in data:
     ex = np.ones(max_sent_length) * dummy_word_idx
     for i, token in enumerate(sentence):
@@ -68,6 +69,9 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=40):
       ex[i] = idx
     data_idx.append(ex)
   data_idx = np.array(data_idx).astype('int32')
+  counter += 1
+  if (counter%10000) == 0
+    print "Number of indexed sentences:",counter
   return data_idx
 
 CL_DIR = "/cluster/work/scr2/jderiu/semeval"
