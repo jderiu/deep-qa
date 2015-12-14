@@ -12,7 +12,7 @@ def main():
   np.random.seed(123)
 
   data_dirs = [
-              CL_DIR
+              HOME_DIR
               ]
 
   for data_dir in data_dirs:

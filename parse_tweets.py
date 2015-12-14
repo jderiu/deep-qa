@@ -78,7 +78,7 @@ CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
 
 if __name__ == '__main__':
-    outdir = CL_DIR
+    outdir = HOME_DIR
     train = "semeval/task-B-train-plus-dev.tsv"
     test = "semeval/task-B-test2014-twitter.tsv"
     dev = "semeval/twitter-test-gold-B.downloaded.tsv"
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     print "Loading SemEval data"
     tid, tweets, sentiments = load_data(all_fname)
     print "Loading Smiley Data"
-    tweets_sh, sentiments_sh = pts.load_data("/cluster/work/scr2/jderiu/smiley_tweets_10M.gz")
+    tweets_sh, sentiments_sh = pts.load_data("semeval/smiley_tweets_small.gz")
 
     print "Done Loading"
 

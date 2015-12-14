@@ -14,7 +14,7 @@ CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
 
 def main():
-    data_dir = CL_DIR
+    data_dir = HOME_DIR
 
     smiley_set_tweets = numpy.load(os.path.join(data_dir, 'smiley_twets.tweets.npy'))
     smiley_set_seniments = numpy.load(os.path.join(data_dir, 'smiley_twets.sentiments.npy'))
@@ -29,10 +29,10 @@ def main():
 
     print Counter(smiley_set_seniments)
 
-    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.95)]
-    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.95):int(len(smiley_set_tweets) * 1)]
-    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.95)]
-    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.95):int(len(smiley_set_seniments) * 1)]
+    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.01)]
+    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.01):int(len(smiley_set_tweets) * 0.011)]
+    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.01)]
+    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.01):int(len(smiley_set_seniments) * 0.011)]
     
     print "Length trains_set:", len(train_set)
     print "Length dev_set:", len(dev_set)
