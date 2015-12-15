@@ -193,7 +193,7 @@ class LookupTableFastStatic(Layer):
     def output_func(self, input):
       out = self.W[input.flatten()].reshape((input.shape[0], 1, input.shape[1], self.W.shape[1]))
       if self.pad:
-        pad_matrix = T.zeros((out.shape[0], out.shape[1], self.pad, out.shape[3]))
+        pad_matrix = T.zeros((out.shape[0], out.shape[1], self.pad, out.shape[3]),dtype='float32')
         out = T.concatenate([pad_matrix, out, pad_matrix], axis=2)
       return out
 

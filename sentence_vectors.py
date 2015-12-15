@@ -2,7 +2,8 @@ import cPickle
 import numpy
 import os
 import theano
-from theano import tensor as T, function, printing
+from theano import tensor as T
+from theano import function,printing,sandbox
 import nn_layers
 import sgd_trainer
 from tqdm import tqdm
@@ -27,6 +28,7 @@ def main():
     numpy.random.shuffle(smiley_set)
     smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
 
+    print type(smiley_set_tweets[0][0])
     print Counter(smiley_set_seniments)
 
     train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.01)]
@@ -47,16 +49,17 @@ def main():
 
     print "Loading word embeddings from", fname_wordembeddings
     vocab_emb = numpy.load(fname_wordembeddings)
+    print type(vocab_emb[0][0])
     ndim = vocab_emb.shape[1]
     dummpy_word_idx = numpy.max(smiley_set_tweets)
     print "Word embedding matrix size:", vocab_emb.shape
 
-    tweets = T.lmatrix('tweets_train')
+    tweets = T.imatrix('tweets_train')
     y = T.lvector('y_train')
 
     #######
     n_outs = 2
-    n_epochs = 25
+    n_epochs = 5
     batch_size = 50
     learning_rate = 0.1
     max_norm = 0
@@ -96,10 +99,22 @@ def main():
     ##########
     # LAYERS #
     #########
+
+    parameterMap = {}
+    parameterMap['filterShape'] = filter_shape
+    parameterMap['inputShape'] = input_shape
+    parameterMap['filterWidth'] = filter_width
+    parameterMap['activation'] = activation
+    parameterMap['qLogisticIn'] = q_logistic_n_in
+    parameterMap['kmax'] = k_max
+
+
     lookup_table_words = nn_layers.LookupTableFastStatic(
         W=vocab_emb,
         pad=filter_width-1
     )
+
+    parameterMap['LookupTableFastStaticW'] = lookup_table_words.W
 
     conv = nn_layers.Conv2dLayer(
         rng=numpy_rng,
@@ -107,10 +122,14 @@ def main():
         input_shape=input_shape
     )
 
+    parameterMap['Conv2dLayerW'] = conv.W
+
     non_linearity = nn_layers.NonLinearityLayer(
         b_size=filter_shape[0],
         activation=activation
     )
+
+    parameterMap['NonLinearityLayerB'] = non_linearity.b
 
     pooling = nn_layers.KMaxPoolLayer(k_max=k_max)
 
@@ -128,6 +147,9 @@ def main():
         n_out=q_logistic_n_in,
         activation=activation
     )
+
+    parameterMap['LinearLayerW'] = hidden_layer.W
+    parameterMap['LinearLayerB'] = hidden_layer.b
 
     classifier = nn_layers.LogisticRegression(n_in=q_logistic_n_in, n_out=n_outs)
 
@@ -151,7 +173,7 @@ def main():
     ###############
     ZEROUT_DUMMY_WORD = True
 
-    batch_tweets= T.lmatrix('batch_x_q')
+    batch_tweets= T.imatrix('batch_x_q')
     batch_y = T.lvector('batch_y')
 
     params = nnet_tweets.params
@@ -223,7 +245,7 @@ def main():
             if ZEROUT_DUMMY_WORD:
                 zerout_dummy_word()
 
-            if i % 2000 == 0 or i == num_train_batches:
+            if i % 50000 == 0 or i == num_train_batches:
                 y_pred_dev = predict_prob_batch(dev_set_iterator)
                 dev_acc = metrics.roc_auc_score(y_dev_set, y_pred_dev) * 100
                 if dev_acc > best_dev_acc:
@@ -244,11 +266,7 @@ def main():
     for i, param in enumerate(best_params):
         params[i].set_value(param, borrow=True)
 
-    nnet_tweets.params = params
-
-    f = open('objects.save','wb')
-    for layer in nnet_tweets.layers:
-        cPickle.dump(layer,f,protocol=cPickle.HIGHEST_PROTOCOL)
+    cPickle.dump(parameterMap, open('parameters.p', 'wb'))
 
     #######################
     # Get Sentence Vectors#

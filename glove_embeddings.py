@@ -30,7 +30,7 @@ def main():
       print 'ndim', ndim
 
       random_words_count = 0
-      vocab_emb = np.zeros((len(alphabet) + 1, ndim))
+      vocab_emb = np.zeros((len(alphabet) + 1, ndim),dtype='float32')
       for word, idx in alphabet.iteritems():
         word_vec = word2vec.get(word, None)
         if word_vec is None:

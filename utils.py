@@ -189,7 +189,7 @@ def load_glove_vec(fname,words,delimiter):
       word = splits[0]
       if word in vocab:
         count += 1
-        word_vecs[word] = splits[1:]
+        word_vecs[word] = numpy.asarray(splits[1:],dtype='float32')
   return word_vecs
 
 TASK_A = '/mnt/sdd/home/sovarm/nrc-twitter/data/semeval-2015/SemEval2015-task10-test-A-input.txt'
