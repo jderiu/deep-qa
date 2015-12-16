@@ -10,6 +10,7 @@ from tqdm import tqdm
 import time
 from sklearn import metrics
 from collections import Counter
+import theano.sandbox.cuda.basic_ops
 
 CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
@@ -31,10 +32,10 @@ def main():
     print type(smiley_set_tweets[0][0])
     print Counter(smiley_set_seniments)
 
-    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.01)]
-    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.01):int(len(smiley_set_tweets) * 0.011)]
-    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.01)]
-    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.01):int(len(smiley_set_seniments) * 0.011)]
+    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.95)]
+    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.95):int(len(smiley_set_tweets) * 1)]
+    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.95)]
+    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.95):int(len(smiley_set_seniments) * 1)]
     
     print "Length trains_set:", len(train_set)
     print "Length dev_set:", len(dev_set)
@@ -76,7 +77,7 @@ def main():
     activation = T.tanh
 
     dropout_rate = 0.5
-    nkernels = 300
+    nkernels = 100
     k_max = 1
     num_input_channels = 1
     filter_width = 5
@@ -131,7 +132,8 @@ def main():
 
     parameterMap['NonLinearityLayerB'] = non_linearity.b
 
-    pooling = nn_layers.KMaxPoolLayer(k_max=k_max)
+    pooling = nn_layers.KMaxPoolLayerNative(input_shape[2] - filter_width + 1)
+    pooling = nn_layers.MaxPoolLayer1()
 
     conv2dNonLinearMaxPool = nn_layers.FeedForwardNet(layers=[
         conv,
@@ -197,11 +199,14 @@ def main():
         word_vec_name='W_emb'
     )
 
+    profile = theano.compile.ProfileStats()
+
     train_fn = theano.function(
         inputs=inputs_train,
         outputs=cost,
         updates=updates,
-        givens=givens_train
+        givens=givens_train,
+        profile=profile
     )
 
     pred_prob_fn = theano.function(
@@ -241,11 +246,13 @@ def main():
         timer = time.time()
         for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator), 1):
             train_fn(tweet, y_label)
+
             # Make sure the null word in the word embeddings always remains zero
             if ZEROUT_DUMMY_WORD:
                 zerout_dummy_word()
 
-            if i % 50000 == 0 or i == num_train_batches:
+            if i % 2000 == 0 or i == num_train_batches:
+
                 y_pred_dev = predict_prob_batch(dev_set_iterator)
                 dev_acc = metrics.roc_auc_score(y_dev_set, y_pred_dev) * 100
                 if dev_acc > best_dev_acc:
@@ -302,5 +309,6 @@ def main():
             if counter == test_set_iterator.n_samples:
                 break
 
+    profile.print_summary()
 if __name__ == '__main__':
     main()

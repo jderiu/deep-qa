@@ -3,9 +3,9 @@ import numpy
 import theano
 from theano import tensor as T
 from theano.tensor.nnet import conv
-from theano.tensor.signal import downsample
-import theano.sandbox.neighbours as TSN
 from theano.tensor.shared_randomstreams import RandomStreams
+from theano.sandbox.cuda.fftconv import conv2d_fft
+from theano.tensor.signal import downsample
 
 import conv1d
 
@@ -376,6 +376,24 @@ class KMaxPoolLayer(Layer):
   def __repr__(self):
     return "{}: k_max={}".format(self.__class__.__name__, self.k_max)
 
+class KMaxPoolLayerNative(Layer):
+  """Folds across last axis (ndim)."""
+  def __init__(self, shape):
+    super(KMaxPoolLayerNative, self).__init__()
+    self.maxpool_shape = (shape,1)
+
+  def output_func(self, input):
+    return downsample.max_pool_2d(input, ds=self.maxpool_shape, ignore_border=False)
+
+  def __repr__(self):
+    return "{}: k_max={}".format(self.__class__.__name__, self.maxpool_shape)
+
+class MaxPoolLayer1(Layer):
+    def __init__(self):
+        super(MaxPoolLayer1, self).__init__()
+
+    def output_func(self, input):
+        return T.max(input,axis=2)
 
 class MaxPoolLayer(Layer):
   """Folds across last axis (ndim)."""
@@ -429,12 +447,17 @@ class Conv1dLayer(ConvolutionLayer):
 
 
 class Conv2dLayer(ConvolutionLayer):
-
   def output_func(self, input):
     return conv.conv2d(input, self.W, border_mode='valid',
                        filter_shape=self.filter_shape,
                        image_shape=self.input_shape)
 
+
+class Conv2dLayerFFT(ConvolutionLayer):
+  def output_func(self, input):
+    return conv2d_fft(input, self.W, border_mode='valid',
+                       filter_shape=self.filter_shape,
+                       image_shape=self.input_shape)
 
 # def Conv2dMaxPool(rng, filter_shape, activation):
 #   conv = Conv2dLayer(rng, filter_shape)
