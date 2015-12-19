@@ -11,6 +11,7 @@ import time
 from sklearn import metrics
 from collections import Counter
 import theano.sandbox.cuda.basic_ops
+import h5py
 
 CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
@@ -18,8 +19,13 @@ HOME_DIR = "semeval_parsed"
 def main():
     data_dir = HOME_DIR
 
-    smiley_set_tweets = numpy.load(os.path.join(data_dir, 'smiley_twets.tweets.npy'))
-    smiley_set_seniments = numpy.load(os.path.join(data_dir, 'smiley_twets.sentiments.npy'))
+    #smiley_set_tweets = numpy.load(os.path.join(data_dir, 'smiley_twets.tweets.npy'))
+    #smiley_set_seniments = numpy.load(os.path.join(data_dir, 'smiley_twets.sentiments.npy'))
+    hf = h5py.File(os.path.join(data_dir,'tweets.h5'),'r')
+    smiley_set_tweets_data = hf.get('smiley_twets.tweets')
+    smiley_set_seniments_data = hf.get('smiley_twets.sentiments')
+    smiley_set_tweets=numpy.array(smiley_set_tweets_data)
+    smiley_set_seniments=numpy.array(smiley_set_seniments_data)
 
     smiley_set_seniments=smiley_set_seniments.astype(int)
     smiley_set_seniments=numpy.asarray([0 if x==-1 else 1 for x in smiley_set_seniments])
@@ -199,14 +205,11 @@ def main():
         word_vec_name='W_emb'
     )
 
-    profile = theano.compile.ProfileStats()
-
     train_fn = theano.function(
         inputs=inputs_train,
         outputs=cost,
         updates=updates,
-        givens=givens_train,
-        profile=profile
+        givens=givens_train
     )
 
     pred_prob_fn = theano.function(
@@ -278,8 +281,13 @@ def main():
     #######################
     # Get Sentence Vectors#
     ######################
-    test_tweets = numpy.load(os.path.join(data_dir, 'all-merged.tweets.npy'))
-    qids_test = numpy.load(os.path.join(data_dir, 'all-merged.tids.npy'))
+    #test_tweets = numpy.load(os.path.join(data_dir, 'all-merged.tweets.npy'))
+    #qids_test = numpy.load(os.path.join(data_dir, 'all-merged.tids.npy'))
+
+    test_tweets_data = hf.get('all-merged.tweets')
+    qids_test_data = hf.get('all-merged.tids')
+    test_tweets = numpy.array(test_tweets_data)
+    qids_test = numpy.array(qids_test_data)
 
     inputs_senvec = [batch_tweets]
     givents_senvec = {tweets:batch_tweets}
@@ -287,7 +295,6 @@ def main():
     output = nnet_tweets.layers[-2].output
 
     output_fn = function(inputs=inputs_senvec, outputs=output,givens=givents_senvec)
-
 
     test_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
         numpy_rng,
@@ -309,6 +316,5 @@ def main():
             if counter == test_set_iterator.n_samples:
                 break
 
-    profile.print_summary()
 if __name__ == '__main__':
     main()
