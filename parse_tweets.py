@@ -59,7 +59,7 @@ def add_to_vocab(data, alphabet):
             alphabet.add(token)
 
 
-def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=40):
+def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=140):
   data_idx = []
   counter = 0
   for sentence in data:
@@ -84,6 +84,9 @@ if __name__ == '__main__':
     dev = "semeval/twitter-test-gold-B.downloaded.tsv"
     test15 = "semeval/task-B-test2015-twitter.tsv"
 
+    smiley_pos = 'semeval/smiley_tweets_10M_pos.gz'
+    smiley_neg = 'semeval/smiley_tweets_10M_neg.gz'
+
     alphabet = Alphabet(start_feature_id=0)
     alphabet.add('UNKNOWN_WORD_IDX')
     dummy_word_idx = alphabet.fid
@@ -93,42 +96,32 @@ if __name__ == '__main__':
     subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
     print "Loading SemEval data"
     tid, tweets, sentiments = load_data(all_fname)
-    print "Loading Smiley Data"
-    tweets_sh, sentiments_sh = pts.load_data("semeval/smiley_tweets_small.gz")
 
     print "Done Loading"
-
     add_to_vocab(tweets, alphabet)
-    add_to_vocab(tweets_sh,alphabet)
-    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab.pickle'), 'w'))
+
     print "alphabet", len(alphabet)
 
-    max_tweet_len = max(map(lambda x: len(x), tweets))
-    max_tweet_len_sh = max(map(lambda x: len(x), tweets_sh))
-    max_tweet_len = max([max_tweet_len,max_tweet_len_sh])
-    print "Max tweet lenght:", max_tweet_len
-
+    print "Loading Smiley Data"
 	#save sheffield tweets
-    tweet_idx_sh=convert2indices(tweets_sh, alphabet, dummy_word_idx, max_tweet_len)
-    print "Number of tweets:", len(tweets_sh)
-    basename, _ = os.path.splitext(os.path.basename("smiley_twets"))
-    hf = h5py.File(os.path.join(outdir,'tweets.h5'),'w')
-    hf.create_dataset('{}.tweets'.format(basename),data=tweet_idx_sh)
-    hf.create_dataset('{}.sentiments'.format(basename),data=sentiments_sh)
+    basename, _ = os.path.splitext(os.path.basename("smiley_tweets_pos"))
+    nTweets = pts.store_file(smiley_pos,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet)
+    print "Number of tweets:", nTweets
 
-    #np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx_sh)
-    #np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments_sh)
+    basename, _ = os.path.splitext(os.path.basename("smiley_tweets_neg"))
+    nTweets = pts.store_file(smiley_neg,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet)
+    print "Number of tweets:", nTweets
+
+    print "alphabet", len(alphabet)
+    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab.pickle'), 'w'))
 
 	#save semeval tweets all
-    tweet_idx = convert2indices(tweets, alphabet, dummy_word_idx, max_tweet_len)
+    tweet_idx = convert2indices(tweets, alphabet, dummy_word_idx)
     print "Number of tweets:", len(tweets)
-    basename, _ = os.path.splitext(os.path.basename("all-merged"))
-    hf.create_dataset('{}.tids'.format(basename),data=tid)
-    hf.create_dataset('{}.tweets'.format(basename),data=tweet_idx)
-    hf.create_dataset('{}.sentiments'.format(basename),data=sentiments)
-    #np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
-    #np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
-    #np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
+    basename, _ = os.path.splitext(os.path.basename("all_merged"))
+    np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
+    np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
+    np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
 
 	#save semeval tweets seperate
     files = [train,dev,test,test15]
@@ -136,13 +129,10 @@ if __name__ == '__main__':
         tid, tweets, sentiments = load_data(fname)
         print "Number of tweets:",tweets.__len__()
 
-        tweet_idx = convert2indices(tweets, alphabet, dummy_word_idx, max_tweet_len)
+        tweet_idx = convert2indices(tweets, alphabet, dummy_word_idx)
 
         basename, _ = os.path.splitext(os.path.basename(fname))
-        hf.create_dataset('{}.tids'.format(basename),data=tid)
-        hf.create_dataset('{}.tweets'.format(basename),data=tweet_idx)
-        hf.create_dataset('{}.sentiments'.format(basename),data=sentiments)
-        #np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
-        #np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
-        #np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
+        np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
+        np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
+        np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
 

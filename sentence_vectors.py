@@ -16,19 +16,37 @@ import h5py
 CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
 
+def load_smiley_tweets(fname_ps):
+    tweet_set = numpy.load(fname_ps)
+    while True:
+        try:
+            batch = numpy.load(fname_ps)
+        except:
+            break
+        tweet_set = numpy.concatenate((tweet_set,batch),axis=0)
+    return tweet_set
+
+
 def main():
     data_dir = HOME_DIR
 
-    #smiley_set_tweets = numpy.load(os.path.join(data_dir, 'smiley_twets.tweets.npy'))
-    #smiley_set_seniments = numpy.load(os.path.join(data_dir, 'smiley_twets.sentiments.npy'))
-    hf = h5py.File(os.path.join(data_dir,'tweets.h5'),'r')
-    smiley_set_tweets_data = hf.get('smiley_twets.tweets')
-    smiley_set_seniments_data = hf.get('smiley_twets.sentiments')
-    smiley_set_tweets=numpy.array(smiley_set_tweets_data)
-    smiley_set_seniments=numpy.array(smiley_set_seniments_data)
+
+    fname_ps = open(os.path.join(data_dir, 'smiley_tweets_pos.tweets.npy'),'rb')
+    smiley_set_tweets_pos = load_smiley_tweets(fname_ps)
+    print smiley_set_tweets_pos.shape
+    pos_lables = smiley_set_tweets_pos.shape[0]
+
+    fname_neg = open(os.path.join(data_dir, 'smiley_tweets_neg.tweets.npy'),'rb')
+    smiley_set_tweets_neg = load_smiley_tweets(fname_neg)
+    print smiley_set_tweets_neg.shape
+    neg_labels = smiley_set_tweets_neg.shape[0]
+
+    n_tweets = min([pos_lables,neg_labels])
+
+    smiley_set_tweets = numpy.concatenate((smiley_set_tweets_pos[0:n_tweets,:],smiley_set_tweets_neg[0:n_tweets,:]),axis=0)
+    smiley_set_seniments = numpy.concatenate((numpy.ones(n_tweets),numpy.zeros(n_tweets)),axis=0)
 
     smiley_set_seniments=smiley_set_seniments.astype(int)
-    smiley_set_seniments=numpy.asarray([0 if x==-1 else 1 for x in smiley_set_seniments])
     print smiley_set_seniments    
 
     smiley_set = zip(smiley_set_tweets,smiley_set_seniments)
@@ -281,13 +299,11 @@ def main():
     #######################
     # Get Sentence Vectors#
     ######################
-    #test_tweets = numpy.load(os.path.join(data_dir, 'all-merged.tweets.npy'))
-    #qids_test = numpy.load(os.path.join(data_dir, 'all-merged.tids.npy'))
+    test_tweets = numpy.load(os.path.join(data_dir, 'all-merged.tweets.npy'))
+    qids_test = numpy.load(os.path.join(data_dir, 'all-merged.tids.npy'))
 
-    test_tweets_data = hf.get('all-merged.tweets')
-    qids_test_data = hf.get('all-merged.tids')
-    test_tweets = numpy.array(test_tweets_data)
-    qids_test = numpy.array(qids_test_data)
+    test_tweets = numpy.array(test_tweets)
+    qids_test = numpy.array(qids_test)
 
     inputs_senvec = [batch_tweets]
     givents_senvec = {tweets:batch_tweets}
