@@ -201,7 +201,7 @@ def main():
             ndim
         )
 
-        parameter_map['FilterShape' + filter_width] = filter_shape
+        parameter_map['FilterShape' + str(filter_width)] = filter_shape
 
         conv = nn_layers.Conv2dLayer(
             rng=numpy_rng,
@@ -209,14 +209,14 @@ def main():
             input_shape=input_shape
         )
 
-        parameter_map['Conv2dLayerW' + filter_width] = conv.W
+        parameter_map['Conv2dLayerW' + str(filter_width)] = conv.W
 
         non_linearity = nn_layers.NonLinearityLayer(
             b_size=filter_shape[0],
             activation=activation
         )
 
-        parameter_map['NonLinearityLayerB' + filter_width] = non_linearity.b
+        parameter_map['NonLinearityLayerB' + str(filter_width)] = non_linearity.b
 
         pooling = nn_layers.KMaxPoolLayer(k_max=k_max)
 
@@ -328,7 +328,7 @@ def main():
 
     training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,parameter_map=parameter_map,early_stop=5)
 
-    cPickle.dump(parameter_map, open('parameters.p', 'wb'))
+    cPickle.dump(parameter_map, open(data_dir+'/parameters.p', 'wb'))
 
     #######################
     # Supervised Learining#
