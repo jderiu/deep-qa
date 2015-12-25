@@ -1,10 +1,11 @@
 import gzip
-from parse_tweets_sheffield import convertSentiment,read_emo
+from parse_tweets_sheffield import convertSentiment,read_emo,preprocess_tweet
 import shutil
 import os
 
+
 def main():
-    input_fname = 'smiley_tweets'
+    input_fname = 'smiley_tweets_small'
 
     input_file = 'semeval/'+input_fname+'.gz'
     pos_output = open('semeval/'+input_fname+'_pos.txt','w')
@@ -16,6 +17,7 @@ def main():
         for tweet in f:
             tweet,sentiment = convertSentiment(tweet)
             tweet = tweet.encode('utf-8')
+            tweet = preprocess_tweet(tweet)
             if sentiment == 1:
                 pos_output.write(tweet)
             if sentiment == -1:

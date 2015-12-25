@@ -186,7 +186,7 @@ def load_glove_vec(fname,words,delimiter):
       if line == "":
         continue
       splits = line.split(delimiter)
-      word = splits[0]
+      word = splits[0].decode('utf-8')
       if word in vocab:
         count += 1
         word_vecs[word] = numpy.asarray(splits[1:],dtype='float32')

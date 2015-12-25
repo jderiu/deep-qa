@@ -36,6 +36,7 @@ def main():
         if word_vec is None:
           word_vec = np.random.uniform(-0.25, 0.25, ndim)
           random_words_count += 1
+          print word
         vocab_emb[idx] = word_vec
       print "Using zero vector as random"
       print 'random_words_count', random_words_count

@@ -40,7 +40,7 @@ def convertSentiment(sentiment):
 
 def load_data(fname):
     tid,tweets,sentiments = [],[],[]
-    tknzr = TweetTokenizer()
+    tknzr = TweetTokenizer(reduce_len=True)
     with open(fname) as f:
         for line in f:
             splits = line.split('\t')
@@ -48,7 +48,8 @@ def load_data(fname):
             sentiment = convertSentiment(splits[2])
             if tweet != "Not Available\n":
                 tid.append(splits[0])
-                tweets.append(preprocess_tweet(tknzr.tokenize(tweet)))
+                tweet = pts.preprocess_tweet(splits[3])
+                tweets.append(tknzr.tokenize(tweet.decode('utf-8')))
                 sentiments.append(int(sentiment))
     return tid,tweets,sentiments
 
@@ -84,14 +85,14 @@ if __name__ == '__main__':
     dev = "semeval/twitter-test-gold-B.downloaded.tsv"
     test15 = "semeval/task-B-test2015-twitter.tsv"
 
-    smiley_pos = 'semeval/smiley_tweets_10M_pos.gz'
-    smiley_neg = 'semeval/smiley_tweets_10M_neg.gz'
+    smiley_pos = 'semeval/smiley_tweets_small_pos.gz'
+    smiley_neg = 'semeval/smiley_tweets_small_neg.gz'
 
     alphabet = Alphabet(start_feature_id=0)
     alphabet.add('UNKNOWN_WORD_IDX')
     dummy_word_idx = alphabet.fid
 
-    all_fname = "semeval/all-merged.txt"
+    all_fname = "semeval/all_merged.txt"
     files = ' '.join([train, dev, test,test15])
     subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
     print "Loading SemEval data"
@@ -105,11 +106,11 @@ if __name__ == '__main__':
     print "Loading Smiley Data"
 	#save sheffield tweets
     basename, _ = os.path.splitext(os.path.basename("smiley_tweets_pos"))
-    nTweets = pts.store_file(smiley_pos,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet)
+    nTweets = pts.store_file(smiley_pos,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)
     print "Number of tweets:", nTweets
 
     basename, _ = os.path.splitext(os.path.basename("smiley_tweets_neg"))
-    nTweets = pts.store_file(smiley_neg,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet)
+    nTweets = pts.store_file(smiley_neg,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)
     print "Number of tweets:", nTweets
 
     print "alphabet", len(alphabet)
