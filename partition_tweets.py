@@ -2,10 +2,14 @@ import gzip
 from parse_tweets_sheffield import convertSentiment,read_emo,preprocess_tweet
 import shutil
 import os
+import sys
 
 
 def main():
     input_fname = 'smiley_tweets_small'
+    if len(sys.argv) > 1:
+        input_fname = sys.argv[1]
+        print input_fname
 
     input_file = 'semeval/'+input_fname+'.gz'
     pos_output = open('semeval/'+input_fname+'_pos.txt','w')

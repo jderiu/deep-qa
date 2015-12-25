@@ -11,7 +11,7 @@ import time
 from sklearn import metrics
 from collections import Counter
 import theano.sandbox.cuda.basic_ops
-import h5py
+import sys
 
 CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
@@ -79,8 +79,12 @@ def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_
 
 
 def main():
-    data_dir = HOME_DIR
 
+    input_fname = 'small'
+    if len(sys.argv) > 1:
+        input_fname = sys.argv[1]
+        print input_fname
+    data_dir = HOME_DIR + input_fname
 
     fname_ps = open(os.path.join(data_dir, 'smiley_tweets_pos.tweets.npy'),'rb')
     smiley_set_tweets_pos = load_smiley_tweets(fname_ps)

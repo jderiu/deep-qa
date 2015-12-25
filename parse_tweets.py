@@ -6,7 +6,7 @@ import subprocess
 from nltk.tokenize import TweetTokenizer
 import parse_tweets_sheffield as pts
 from alphabet import Alphabet
-import h5py
+import sys
 
 UNKNOWN_WORD_IDX = 0
 
@@ -79,14 +79,23 @@ CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
 
 if __name__ == '__main__':
-    outdir = HOME_DIR
+
+    input_fname = 'small'
+    if len(sys.argv) > 1:
+        input_fname = sys.argv[1]
+        print input_fname
+
+    outdir = HOME_DIR + input_fname
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
     train = "semeval/task-B-train-plus-dev.tsv"
     test = "semeval/task-B-test2014-twitter.tsv"
     dev = "semeval/twitter-test-gold-B.downloaded.tsv"
     test15 = "semeval/task-B-test2015-twitter.tsv"
 
-    smiley_pos = 'semeval/smiley_tweets_small_pos.gz'
-    smiley_neg = 'semeval/smiley_tweets_small_neg.gz'
+    smiley_pos = 'semeval/smiley_tweets_{}_pos.gz'.format(input_fname)
+    smiley_neg = 'semeval/smiley_tweets_{}_neg.gz'.format(input_fname)
 
     alphabet = Alphabet(start_feature_id=0)
     alphabet.add('UNKNOWN_WORD_IDX')
@@ -105,11 +114,11 @@ if __name__ == '__main__':
 
     print "Loading Smiley Data"
 	#save sheffield tweets
-    basename, _ = os.path.splitext(os.path.basename("smiley_tweets_pos"))
+    basename, _ = os.path.splitext(os.path.basename('smiley_tweets_pos'.format(input_fname)))
     nTweets = pts.store_file(smiley_pos,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)
     print "Number of tweets:", nTweets
 
-    basename, _ = os.path.splitext(os.path.basename("smiley_tweets_neg"))
+    basename, _ = os.path.splitext(os.path.basename('smiley_tweets_neg'.format(input_fname)))
     nTweets = pts.store_file(smiley_neg,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)
     print "Number of tweets:", nTweets
 

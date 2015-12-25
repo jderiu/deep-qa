@@ -1,6 +1,7 @@
 import numpy as np
 import cPickle
 import os
+import sys
 
 from alphabet import Alphabet
 from utils import load_glove_vec
@@ -10,9 +11,13 @@ HOME_DIR = "semeval_parsed"
 
 def main():
   np.random.seed(123)
+  input_fname = 'small'
+  if len(sys.argv) > 1:
+      input_fname = sys.argv[1]
+      print input_fname
 
   data_dirs = [
-              HOME_DIR
+              HOME_DIR + input_fname
               ]
 
   for data_dir in data_dirs:
