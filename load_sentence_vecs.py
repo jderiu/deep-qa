@@ -20,7 +20,7 @@ def main():
     parameterMap = cPickle.load(open('parameters.p', 'rb'))
     filter_shape = parameterMap['filterShape']
     input_shape = parameterMap['inputShape']
-    filter_width = parameterMap['filterWidth']
+    filter_widths = parameterMap['filterWidths']
     activation = parameterMap['activation']
     q_logistic_n_in = parameterMap['qLogisticIn']
     k_max = parameterMap['kmax']
@@ -32,30 +32,35 @@ def main():
 
     lookup_table_words = nn_layers.LookupTableFastStatic(
         W=parameterMap['LookupTableFastStaticW'].get_value(),
-        pad=filter_width-1
+        pad=max(filter_widths)-1
     )
 
-    conv = nn_layers.Conv2dLayer(
-        W=parameterMap['Conv2dLayerW'],
-        rng=numpy_rng,
-        filter_shape=filter_shape,
-        input_shape=input_shape
-    )
+    conv_layers = []
+    for filter_width in filter_widths:
 
-    non_linearity = nn_layers.NonLinearityLayer(
-        b=parameterMap['NonLinearityLayerB'],
-        b_size=filter_shape[0],
-        activation=activation
-    )
+        conv = nn_layers.Conv2dLayer(
+            W=parameterMap['Conv2dLayerW' + filter_width],
+            rng=numpy_rng,
+            filter_shape=filter_shape,
+            input_shape=input_shape
+        )
 
-    pooling = nn_layers.KMaxPoolLayer(k_max=k_max)
+        non_linearity = nn_layers.NonLinearityLayer(
+            b=parameterMap['NonLinearityLayerB' + filter_width],
+            b_size=filter_shape[0],
+            activation=activation
+        )
 
-    conv2dNonLinearMaxPool = nn_layers.FeedForwardNet(layers=[
-        conv,
-        non_linearity,
-        pooling
-    ])
+        pooling = nn_layers.KMaxPoolLayer(k_max=k_max)
 
+        conv2dNonLinearMaxPool = nn_layers.FeedForwardNet(layers=[
+            conv,
+            non_linearity,
+            pooling
+        ])
+        conv_layers.append(conv2dNonLinearMaxPool)
+
+    join_layer = nn_layers.ParallelLayer(layers=conv_layers)
     flatten_layer = nn_layers.FlattenLayer()
 
     hidden_layer = nn_layers.LinearLayer(
@@ -69,7 +74,7 @@ def main():
 
     nnet_tweets = nn_layers.FeedForwardNet(layers=[
         lookup_table_words,
-        conv2dNonLinearMaxPool,
+        join_layer,
         flatten_layer,
         hidden_layer
     ])

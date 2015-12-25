@@ -46,7 +46,7 @@ def convertSentiment(tweet):
 UNKNOWN_WORD_IDX = 0
 
 
-def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=300):
+def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=140):
   data_idx = []
   for sentence in data:
     ex = np.ones(max_sent_length) * dummy_word_idx
