@@ -17,7 +17,7 @@ def main():
       print input_fname
 
   data_dirs = [
-              HOME_DIR + input_fname
+              HOME_DIR + '_' + input_fname
               ]
 
   for data_dir in data_dirs:
@@ -28,8 +28,7 @@ def main():
 
     for fname,delimiter in [
       ('embeddings/glove.twitter.27B.50d.txt',' ')]:
-      word2vec = load_glove_vec(fname, words,delimiter)
-
+      word2vec = load_glove_vec(fname,words,delimiter)
 
       ndim = len(word2vec[word2vec.keys()[0]])
       print 'ndim', ndim
@@ -41,7 +40,6 @@ def main():
         if word_vec is None:
           word_vec = np.random.uniform(-0.25, 0.25, ndim)
           random_words_count += 1
-          print word
         vocab_emb[idx] = word_vec
       print "Using zero vector as random"
       print 'random_words_count', random_words_count

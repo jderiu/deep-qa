@@ -41,6 +41,7 @@ def convertSentiment(sentiment):
 def load_data(fname):
     tid,tweets,sentiments = [],[],[]
     tknzr = TweetTokenizer(reduce_len=True)
+    w2v = pts.word2vec
     with open(fname) as f:
         for line in f:
             splits = line.split('\t')
@@ -49,7 +50,9 @@ def load_data(fname):
             if tweet != "Not Available\n":
                 tid.append(splits[0])
                 tweet = pts.preprocess_tweet(splits[3])
-                tweets.append(tknzr.tokenize(tweet.decode('utf-8')))
+                tweet_tok = tknzr.tokenize(tweet.decode('utf-8'))
+                tweet_tok = pts.normalize_unknown(tweet_tok,w2v)
+                tweets.append(tweet_tok)
                 sentiments.append(int(sentiment))
     return tid,tweets,sentiments
 
@@ -83,9 +86,9 @@ if __name__ == '__main__':
     input_fname = 'small'
     if len(sys.argv) > 1:
         input_fname = sys.argv[1]
-        print input_fname
 
-    outdir = HOME_DIR + input_fname
+    outdir = HOME_DIR + '_' + input_fname
+    print outdir
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
@@ -109,7 +112,6 @@ if __name__ == '__main__':
 
     print "Done Loading"
     add_to_vocab(tweets, alphabet)
-
     print "alphabet", len(alphabet)
 
     print "Loading Smiley Data"
@@ -117,6 +119,8 @@ if __name__ == '__main__':
     basename, _ = os.path.splitext(os.path.basename('smiley_tweets_pos'.format(input_fname)))
     nTweets = pts.store_file(smiley_pos,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)
     print "Number of tweets:", nTweets
+
+    print "alphabet", len(alphabet)
 
     basename, _ = os.path.splitext(os.path.basename('smiley_tweets_neg'.format(input_fname)))
     nTweets = pts.store_file(smiley_neg,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)

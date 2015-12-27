@@ -16,18 +16,20 @@ import sys
 CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
 
-def load_smiley_tweets(fname_ps):
+def load_smiley_tweets(fname_ps,max_it=numpy.inf):
     tweet_set = numpy.load(fname_ps)
-    while True:
+    it = 0
+    while it <= max_it:
         try:
             batch = numpy.load(fname_ps)
         except:
             break
         tweet_set = numpy.concatenate((tweet_set,batch),axis=0)
+        it += 1
     return tweet_set
 
 
-def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,parameter_map,n_outs=2,early_stop=5):
+def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir,parameter_map,n_outs=2,early_stop=5,check_freq=300):
     params = nnet.params
     ZEROUT_DUMMY_WORD = True
 
@@ -49,7 +51,7 @@ def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_
             if ZEROUT_DUMMY_WORD:
                 zerout_dummy_word()
 
-            if i % 3000 == 0 or i == num_train_batches:
+            if i % check_freq == 0 or i == num_train_batches:
                 y_pred_dev = predict_prob_batch(dev_set_iterator)
                 if n_outs == 2:
                     dev_acc = metrics.roc_auc_score(y_dev_set, y_pred_dev) * 100
@@ -60,7 +62,7 @@ def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_
                     best_dev_acc = dev_acc
                     best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
                     no_best_dev_update = 0
-                    cPickle.dump(parameter_map, open('parameters.p', 'wb'))
+                    cPickle.dump(parameter_map, open(data_dir+'/parameters.p', 'wb'))
 
         if no_best_dev_update >= early_stop:
             print "Quitting after of no update of the best score on dev set", no_best_dev_update
@@ -73,55 +75,51 @@ def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_
     print('Training took: {:.4f} seconds'.format(time.time() - timer_train))
     for i, param in enumerate(best_params):
         params[i].set_value(param, borrow=True)
-
-
     params
 
 
 def main():
-
     input_fname = 'small'
     if len(sys.argv) > 1:
         input_fname = sys.argv[1]
         print input_fname
-    data_dir = HOME_DIR + input_fname
+    data_dir = HOME_DIR + '_' + input_fname
 
     fname_ps = open(os.path.join(data_dir, 'smiley_tweets_pos.tweets.npy'),'rb')
-    smiley_set_tweets_pos = load_smiley_tweets(fname_ps)
+    smiley_set_tweets_pos = load_smiley_tweets(fname_ps,max_it=5)
     print smiley_set_tweets_pos.shape
     pos_lables = smiley_set_tweets_pos.shape[0]
 
     fname_neg = open(os.path.join(data_dir, 'smiley_tweets_neg.tweets.npy'),'rb')
-    smiley_set_tweets_neg = load_smiley_tweets(fname_neg)
+    smiley_set_tweets_neg = load_smiley_tweets(fname_neg,max_it=5)
     print smiley_set_tweets_neg.shape
     neg_labels = smiley_set_tweets_neg.shape[0]
 
     n_tweets = min([pos_lables,neg_labels])
-    #[0:n_tweets,:]
     smiley_set_tweets = numpy.concatenate((smiley_set_tweets_pos[0:n_tweets,:],smiley_set_tweets_neg[0:n_tweets,:]),axis=0)
     smiley_set_seniments = numpy.concatenate((numpy.ones(n_tweets),numpy.zeros(n_tweets)),axis=0)
 
     smiley_set_seniments=smiley_set_seniments.astype(int)
     print smiley_set_tweets.shape
+    numpy_rng = numpy.random.RandomState(123)
 
     smiley_set = zip(smiley_set_tweets,smiley_set_seniments)
-    numpy.random.shuffle(smiley_set)
+    numpy_rng.shuffle(smiley_set)
     smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
 
     print type(smiley_set_tweets[0][0])
     print Counter(smiley_set_seniments)
 
-    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.95)]
-    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.95):int(len(smiley_set_tweets) * 1)]
-    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.95)]
-    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.95):int(len(smiley_set_seniments) * 1)]
+    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.99)]
+    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.99):int(len(smiley_set_tweets) * 1)]
+    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.99)]
+    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.99):int(len(smiley_set_seniments) * 1)]
     
     print "Length trains_set:", len(train_set)
     print "Length dev_set:", len(dev_set)
     print "Length y_trains_set:", len(y_train_set)
     print "Length y_dev_set:", len(y_dev_set)
 
-    numpy_rng = numpy.random.RandomState(123)
     q_max_sent_size = smiley_set_tweets.shape[1]
 
     # Load word2vec embeddings
@@ -139,7 +137,7 @@ def main():
 
     #######
     n_outs = 2
-    n_epochs = 25
+    n_epochs = 50
     batch_size = 500
     learning_rate = 0.1
     max_norm = 0
@@ -325,8 +323,8 @@ def main():
         preds = numpy.hstack([pred_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
-
-    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,parameter_map=parameter_map,early_stop=5)
+    check_freq = train_set_iterator.n_batches/10
+    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir=data_dir,parameter_map=parameter_map,early_stop=10,check_freq=check_freq)
 
     cPickle.dump(parameter_map, open(data_dir+'/parameters.p', 'wb'))
 
@@ -353,7 +351,6 @@ def main():
         batch_size=batch_size,
         randomize=False
     )
-
 
     n_outs = 3
     classifier = nn_layers.LogisticRegression(n_in=q_logistic_n_in, n_out=n_outs)
@@ -391,7 +388,8 @@ def main():
 
     n_epochs = 100
 
-    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_batch,dev_sentiments,parameter_map=parameter_map,n_outs=3,early_stop=5)
+    check_freq = train_set_iterator.n_batches/10
+    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_batch,dev_sentiments,data_dir=data_dir,parameter_map=parameter_map,n_outs=3,early_stop=10,check_freq=check_freq)
 
 
     #######################

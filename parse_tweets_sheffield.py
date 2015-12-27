@@ -2,16 +2,21 @@ import numpy as np
 from nltk.tokenize import TweetTokenizer
 import gzip
 import re
+from utils import load_glove_vec
 
 def preprocess_tweet(tweet):
     tweet = tweet.lower()
     tweet = re.sub('((www\.[^\s]+)|(https?://[^\s]+)|(http?://[^\s]+))','<url>',tweet)
     tweet = re.sub('@[^\s]+','<user>',tweet)
     tweet = re.sub(r'#([^\s]+)', r'\1', tweet)
+    try:
+        tweet = tweet.decode('unicode_escape').encode('ascii','ignore')
+    except:
+        pass
     return tweet
 
 emo_dict = {}
-
+word2vec = load_glove_vec('embeddings/glove.twitter.27B.50d.txt',{},' ')
 
 def read_emo(path):
     with open(path) as f:
@@ -45,34 +50,31 @@ def convertSentiment(tweet):
 
 UNKNOWN_WORD_IDX = 0
 
-
 def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=140):
   data_idx = []
+  max_len = 0
   for sentence in data:
     ex = np.ones(max_sent_length) * dummy_word_idx
+    max_len = max(len(sentence),max_len)
+    if len(sentence) > max_sent_length:
+        print "Sentence length:",len(sentence)
+        print sentence
     for i, token in enumerate(sentence):
       idx = alphabet.get(token, UNKNOWN_WORD_IDX)
       ex[i] = idx
     data_idx.append(ex)
   data_idx = np.array(data_idx).astype('int32')
+  print "Max length in this batch:",max_len
   return data_idx
 
 
-def get_alphabet(fname,alphabet):
-    tknzr = TweetTokenizer(reduce_len=True)
-    counter = 0
-    max_len = 0
-    with gzip.open(fname,'r') as f:
-        for tweet in f:
-            tweet = preprocess_tweet(tweet)
-            tweet = tknzr.tokenize(tweet)
-            for token in tweet:
-                alphabet.add(token)
-            max_len = max(max_len,len(tweet))
-            counter += 1
-            if (counter%100000) == 0:
-                print "Elements processed:",counter
-    return max_len
+def normalize_unknown(tweet,word2vec):
+    unknown_cnt = 0
+    for i,token in enumerate(tweet):
+        if word2vec.get(token, None) == None:
+            tweet[i] = 'UNK'
+            unknown_cnt += 1
+    return tweet
 
 
 def store_file(f_in,f_out,alphabet,dummy_word_idx):
@@ -81,13 +83,17 @@ def store_file(f_in,f_out,alphabet,dummy_word_idx):
     output = open(f_out,'wb')
     batch_size = 600000
     tweet_batch = []
+    read_emo('emoscores')
     with gzip.open(f_in,'r') as f:
         for tweet in f:
+            tweet, _ = convertSentiment(tweet)
+            tweet = tweet.encode('utf-8')
             tweet = preprocess_tweet(tweet)
             tweet = tknzr.tokenize(tweet.decode('utf-8'))
-            for token in tweet:
+            tweet_norm = normalize_unknown(tweet,word2vec)
+            for token in tweet_norm:
                 alphabet.add(token)
-            tweet_batch.append(tweet)
+            tweet_batch.append(tweet_norm)
             counter += 1
             if counter%batch_size == 0:
                 tweet_idx = convert2indices(tweet_batch,alphabet,dummy_word_idx)
@@ -96,7 +102,6 @@ def store_file(f_in,f_out,alphabet,dummy_word_idx):
                 tweet_batch = []
             if (counter%100000) == 0:
                 print "Elements processed:",counter
-
     tweet_idx = convert2indices(tweet_batch,alphabet,dummy_word_idx)
     np.save(output,tweet_idx)
     print 'Saved tweets:',tweet_idx.shape

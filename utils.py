@@ -187,9 +187,11 @@ def load_glove_vec(fname,words,delimiter):
         continue
       splits = line.split(delimiter)
       word = splits[0].decode('utf-8')
-      if word in vocab:
+      if (word in vocab) or len(vocab) == 0:
         count += 1
         word_vecs[word] = numpy.asarray(splits[1:],dtype='float32')
+        if count%100000 == 0:
+          print "W2V Count:",count
   return word_vecs
 
 TASK_A = '/mnt/sdd/home/sovarm/nrc-twitter/data/semeval-2015/SemEval2015-task10-test-A-input.txt'
