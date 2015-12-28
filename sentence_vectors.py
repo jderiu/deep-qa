@@ -19,7 +19,7 @@ HOME_DIR = "semeval_parsed"
 def load_smiley_tweets(fname_ps,max_it=numpy.inf):
     tweet_set = numpy.load(fname_ps)
     it = 0
-    while it <= max_it:
+    while it < max_it:
         try:
             batch = numpy.load(fname_ps)
         except:
@@ -28,6 +28,45 @@ def load_smiley_tweets(fname_ps,max_it=numpy.inf):
         it += 1
     return tweet_set
 
+def semeval_f1(y_truth,y_pred):
+    negPrecUp = 0
+    negPrecDown = 0
+    negRecallUp = 0
+    negRecallDown = 0
+
+    posPrecUp = 0
+    posPrecDown = 0
+    posRecallUp = 0
+    posRecallDown = 0
+
+    for (target,prediction) in zip(y_truth,y_pred):
+        if(target == 0 and prediction == 0):
+            negPrecUp += 1
+            negRecallUp += 1
+        if prediction == 0:
+            negPrecDown += 1
+        if target == 0:
+            negRecallDown += 1
+
+        if prediction == 2 and target == 2:
+            posPrecUp += 1
+            posRecallUp += 1
+        if prediction == 2:
+            posPrecDown += 1
+        if target == 2:
+            posRecallDown += 1
+
+    negPrecision = 1.0*negPrecUp/negPrecDown
+    posPrecision = 1.0*posPrecUp/posPrecDown
+
+    negRecall = 1.0*negRecallUp/negRecallDown
+    posRecall = 1.0*posRecallUp/posRecallDown
+
+    negF1 = 2*(negPrecision*negRecall)/(negPrecision + negRecall)
+    posF1 = 2*(posPrecision*posRecall)/(posPrecision + posRecall)
+
+    f1 = (negF1 + posF1)/2
+    return f1
 
 def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir,parameter_map,n_outs=2,early_stop=5,check_freq=300):
     params = nnet.params
@@ -44,7 +83,7 @@ def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_
     num_train_batches = len(train_set_iterator)
     while epoch < n_epochs:
         timer = time.time()
-        for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator), 1):
+        for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator,ascii=True), 1):
             train_fn(tweet, y_label)
 
             # Make sure the null word in the word embeddings always remains zero
@@ -56,7 +95,7 @@ def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_
                 if n_outs == 2:
                     dev_acc = metrics.roc_auc_score(y_dev_set, y_pred_dev) * 100
                 else:
-                    dev_acc = metrics.accuracy_score(y_dev_set,y_pred_dev)*100
+                    dev_acc = semeval_f1(y_dev_set,y_pred_dev)*100
                 if dev_acc > best_dev_acc:
                     print('epoch: {} batch: {} dev auc: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, i, dev_acc,best_dev_acc))
                     best_dev_acc = dev_acc
@@ -86,12 +125,12 @@ def main():
     data_dir = HOME_DIR + '_' + input_fname
 
     fname_ps = open(os.path.join(data_dir, 'smiley_tweets_pos.tweets.npy'),'rb')
-    smiley_set_tweets_pos = load_smiley_tweets(fname_ps,max_it=5)
+    smiley_set_tweets_pos = load_smiley_tweets(fname_ps,max_it=10)
     print smiley_set_tweets_pos.shape
     pos_lables = smiley_set_tweets_pos.shape[0]
 
     fname_neg = open(os.path.join(data_dir, 'smiley_tweets_neg.tweets.npy'),'rb')
-    smiley_set_tweets_neg = load_smiley_tweets(fname_neg,max_it=5)
+    smiley_set_tweets_neg = load_smiley_tweets(fname_neg,max_it=10)
     print smiley_set_tweets_neg.shape
     neg_labels = smiley_set_tweets_neg.shape[0]
 
@@ -110,10 +149,10 @@ def main():
     print type(smiley_set_tweets[0][0])
     print Counter(smiley_set_seniments)
 
-    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.99)]
-    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.99):int(len(smiley_set_tweets) * 1)]
-    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.99)]
-    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.99):int(len(smiley_set_seniments) * 1)]
+    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.90)]
+    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.90):int(len(smiley_set_tweets) * 1)]
+    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.90)]
+    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.90):int(len(smiley_set_seniments) * 1)]
     
     print "Length trains_set:", len(train_set)
     print "Length dev_set:", len(dev_set)
@@ -137,7 +176,7 @@ def main():
 
     #######
     n_outs = 2
-    n_epochs = 50
+    n_epochs = 20
     batch_size = 500
     learning_rate = 0.1
     max_norm = 0
@@ -154,10 +193,10 @@ def main():
     activation = T.tanh
 
     dropout_rate = 0.5
-    nkernels = 100
+    nkernels = 300
     k_max = 1
     num_input_channels = 1
-    filter_widths = [3,4,5]
+    filter_widths = [5]
     q_logistic_n_in = nkernels * k_max * len(filter_widths)
 
     input_shape = (
@@ -324,7 +363,7 @@ def main():
         return preds[:batch_iterator.n_samples]
 
     check_freq = train_set_iterator.n_batches/10
-    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir=data_dir,parameter_map=parameter_map,early_stop=10,check_freq=check_freq)
+    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir=data_dir,parameter_map=parameter_map,early_stop=3,check_freq=check_freq)
 
     cPickle.dump(parameter_map, open(data_dir+'/parameters.p', 'wb'))
 

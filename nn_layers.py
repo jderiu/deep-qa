@@ -459,6 +459,15 @@ class Conv2dLayerFFT(ConvolutionLayer):
                        filter_shape=self.filter_shape,
                        image_shape=self.input_shape)
 
+
+class MeanLayer(Layer):
+    def __init__(self):
+        super(MeanLayer, self).__init__()
+
+    def output_func(self, input):
+        return input.mean(axis=2)
+
+
 # def Conv2dMaxPool(rng, filter_shape, activation):
 #   conv = Conv2dLayer(rng, filter_shape)
 #   nonlinearity = NonLinearityLayer(activation=activation)

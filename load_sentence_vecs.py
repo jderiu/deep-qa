@@ -98,8 +98,8 @@ def main():
     training_tweets = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tweets.npy'))
     training_sentiments = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.sentiments.npy'))
 
-    dev_tweets = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.tweets.npy'))
-    dev_sentiments = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.sentiments.npy'))
+    dev_tweets = numpy.load(os.path.join(data_dir, 'task-B-test2015-twitter.tweets.npy'))
+    dev_sentiments = numpy.load(os.path.join(data_dir, 'task-B-test2015-twitter.sentiments.npy'))
 
     inputs_train = [batch_tweets, batch_y]
     givens_train = {tweets: batch_tweets,
@@ -165,7 +165,7 @@ def main():
         preds = numpy.hstack([pred_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
-    n_epochs = 1
+    n_epochs = 20
     check_freq = train_set_iterator.n_batches/10
     sv.training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_batch,dev_sentiments,data_dir=data_dir,parameter_map=parameterMap,n_outs=3,early_stop=10,check_freq=check_freq)
 
@@ -180,6 +180,7 @@ def main():
 
     inputs_senvec = [batch_tweets]
     givents_senvec = {tweets:batch_tweets}
+
 
     output = nnet_tweets.layers[-2].output
 
