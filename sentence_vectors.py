@@ -19,7 +19,7 @@ HOME_DIR = "semeval_parsed"
 def load_smiley_tweets(fname_ps,max_it=numpy.inf):
     tweet_set = numpy.load(fname_ps)
     it = 0
-    while it < max_it:
+    while it <= max_it:
         try:
             batch = numpy.load(fname_ps)
         except:
@@ -40,7 +40,7 @@ def semeval_f1(y_truth,y_pred):
     posRecallDown = 0
 
     for (target,prediction) in zip(y_truth,y_pred):
-        if(target == 0 and prediction == 0):
+        if target == 0 and prediction == 0:
             negPrecUp += 1
             negRecallUp += 1
         if prediction == 0:
@@ -56,11 +56,25 @@ def semeval_f1(y_truth,y_pred):
         if target == 2:
             posRecallDown += 1
 
-    negPrecision = 1.0*negPrecUp/negPrecDown
-    posPrecision = 1.0*posPrecUp/posPrecDown
+    if negPrecDown == 0:
+        negPrecision = 1.0
+    else:
+        negPrecision = 1.0*negPrecUp/negPrecDown
 
-    negRecall = 1.0*negRecallUp/negRecallDown
-    posRecall = 1.0*posRecallUp/posRecallDown
+    if posPrecDown == 0:
+        posPrecision = 1.0
+    else:
+        posPrecision = 1.0*posPrecUp/posPrecDown
+
+    if negRecallDown == 0:
+        negRecall = 1.0
+    else:
+        negRecall = 1.0*negRecallUp/negRecallDown
+
+    if posRecallDown == 0:
+        posRecall = 1.0
+    else:
+        posRecall = 1.0*posRecallUp/posRecallDown
 
     negF1 = 2*(negPrecision*negRecall)/(negPrecision + negRecall)
     posF1 = 2*(posPrecision*posRecall)/(posPrecision + posRecall)
@@ -96,6 +110,7 @@ def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_
                     dev_acc = metrics.roc_auc_score(y_dev_set, y_pred_dev) * 100
                 else:
                     dev_acc = semeval_f1(y_dev_set,y_pred_dev)*100
+                    dev_acc_c = metrics.accuracy_score(y_dev_set,y_pred_dev)*100
                 if dev_acc > best_dev_acc:
                     print('epoch: {} batch: {} dev auc: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, i, dev_acc,best_dev_acc))
                     best_dev_acc = dev_acc
@@ -117,6 +132,39 @@ def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_
     params
 
 
+def get_next_chunck(pos_file,neg_file,n_chunchks=1):
+    tweet_set = None
+    sentiment_set = None
+    it = 0
+    while True:
+        try:
+            batch_pos = numpy.load(pos_file)
+            batch_neg = numpy.load(neg_file)
+            batch = numpy.concatenate((batch_pos,batch_neg),axis=0)
+            print batch.shape
+
+            pos_len = batch_pos.shape[0]
+            neg_len = batch_neg.shape[0]
+            sentiment = numpy.concatenate((numpy.ones(pos_len),numpy.zeros(neg_len)),axis=0)
+            if tweet_set == None:
+                tweet_set = batch
+                sentiment_set = sentiment
+                print tweet_set.shape
+            else:
+                print tweet_set.shape
+                tweet_set = numpy.concatenate((tweet_set,batch),axis=0)
+                sentiment_set = numpy.concatenate((sentiment_set,sentiment),axis=0)
+        except:
+            break
+        it += 1
+        print it
+        if not (it < n_chunchks):
+            break
+
+    return tweet_set,sentiment_set
+
+
+
 def main():
     input_fname = 'small'
     if len(sys.argv) > 1:
@@ -125,41 +173,10 @@ def main():
     data_dir = HOME_DIR + '_' + input_fname
 
     fname_ps = open(os.path.join(data_dir, 'smiley_tweets_pos.tweets.npy'),'rb')
-    smiley_set_tweets_pos = load_smiley_tweets(fname_ps,max_it=10)
-    print smiley_set_tweets_pos.shape
-    pos_lables = smiley_set_tweets_pos.shape[0]
-
     fname_neg = open(os.path.join(data_dir, 'smiley_tweets_neg.tweets.npy'),'rb')
-    smiley_set_tweets_neg = load_smiley_tweets(fname_neg,max_it=10)
-    print smiley_set_tweets_neg.shape
-    neg_labels = smiley_set_tweets_neg.shape[0]
-
-    n_tweets = min([pos_lables,neg_labels])
-    smiley_set_tweets = numpy.concatenate((smiley_set_tweets_pos[0:n_tweets,:],smiley_set_tweets_neg[0:n_tweets,:]),axis=0)
-    smiley_set_seniments = numpy.concatenate((numpy.ones(n_tweets),numpy.zeros(n_tweets)),axis=0)
-
-    smiley_set_seniments=smiley_set_seniments.astype(int)
-    print smiley_set_tweets.shape
     numpy_rng = numpy.random.RandomState(123)
 
-    smiley_set = zip(smiley_set_tweets,smiley_set_seniments)
-    numpy_rng.shuffle(smiley_set)
-    smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
-
-    print type(smiley_set_tweets[0][0])
-    print Counter(smiley_set_seniments)
-
-    train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.90)]
-    dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.90):int(len(smiley_set_tweets) * 1)]
-    y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.90)]
-    y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.90):int(len(smiley_set_seniments) * 1)]
-    
-    print "Length trains_set:", len(train_set)
-    print "Length dev_set:", len(dev_set)
-    print "Length y_trains_set:", len(y_train_set)
-    print "Length y_dev_set:", len(y_dev_set)
-
-    q_max_sent_size = smiley_set_tweets.shape[1]
+    q_max_sent_size = 140
 
     # Load word2vec embeddings
     fname_wordembeddings = os.path.join(data_dir, 'emb_glove.twitter.27B.50d.txt.npy')
@@ -167,8 +184,6 @@ def main():
     print "Loading word embeddings from", fname_wordembeddings
     vocab_emb = numpy.load(fname_wordembeddings)
     print type(vocab_emb[0][0])
-    ndim = vocab_emb.shape[1]
-    dummpy_word_idx = numpy.max(smiley_set_tweets)
     print "Word embedding matrix size:", vocab_emb.shape
 
     tweets = T.imatrix('tweets_train')
@@ -176,7 +191,7 @@ def main():
 
     #######
     n_outs = 2
-    n_epochs = 20
+    n_epochs = 1
     batch_size = 500
     learning_rate = 0.1
     max_norm = 0
@@ -340,19 +355,6 @@ def main():
         givens=givens_pred
     )
 
-    train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
-        numpy_rng,
-        [train_set, y_train_set],
-        batch_size=batch_size,
-        randomize=True
-    )
-
-    dev_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
-        numpy_rng,
-        [dev_set],
-        batch_size=batch_size,
-        randomize=False
-    )
 
     def predict_prob_batch(batch_iterator):
         preds = numpy.hstack([pred_prob_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
@@ -362,10 +364,46 @@ def main():
         preds = numpy.hstack([pred_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
-    check_freq = train_set_iterator.n_batches/10
-    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir=data_dir,parameter_map=parameter_map,early_stop=3,check_freq=check_freq)
 
-    cPickle.dump(parameter_map, open(data_dir+'/parameters.p', 'wb'))
+    while True:
+        smiley_set_tweets,smiley_set_seniments = get_next_chunck(fname_ps,fname_neg,n_chunchks=4)
+        if smiley_set_tweets == None:
+            break
+
+        smiley_set_seniments=smiley_set_seniments.astype(int)
+
+        smiley_set = zip(smiley_set_tweets,smiley_set_seniments)
+        numpy_rng.shuffle(smiley_set)
+        smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
+
+        train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.95)]
+        dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.95):int(len(smiley_set_tweets) * 1)]
+        y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.95)]
+        y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.95):int(len(smiley_set_seniments) * 1)]
+
+        print "Length trains_set:", len(train_set)
+        print "Length dev_set:", len(dev_set)
+        print "Length y_trains_set:", len(y_train_set)
+        print "Length y_dev_set:", len(y_dev_set)
+
+        train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
+        numpy_rng,
+        [train_set, y_train_set],
+        batch_size=batch_size,
+        randomize=True
+        )
+
+        dev_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
+            numpy_rng,
+            [dev_set],
+            batch_size=batch_size,
+            randomize=False
+        )
+
+        check_freq = train_set_iterator.n_batches/10
+        training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir=data_dir,parameter_map=parameter_map,early_stop=3,check_freq=check_freq)
+
+        cPickle.dump(parameter_map, open(data_dir+'/parameters.p', 'wb'))
 
     #######################
     # Supervised Learining#

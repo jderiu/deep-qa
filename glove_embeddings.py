@@ -16,9 +16,7 @@ def main():
       input_fname = sys.argv[1]
       print input_fname
 
-  data_dirs = [
-              HOME_DIR + '_' + input_fname
-              ]
+  data_dirs = [HOME_DIR + '_' + input_fname]
 
   for data_dir in data_dirs:
     fname_vocab = os.path.join(data_dir, 'vocab.pickle')
@@ -35,7 +33,7 @@ def main():
 
       random_words_count = 0
       vocab_emb = np.zeros((len(alphabet) + 1, ndim),dtype='float32')
-      for word, idx in alphabet.iteritems():
+      for word,idx in alphabet.iteritems():
         word_vec = word2vec.get(word, None)
         if word_vec is None:
           word_vec = np.random.uniform(-0.25, 0.25, ndim)

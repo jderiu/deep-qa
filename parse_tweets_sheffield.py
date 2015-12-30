@@ -8,7 +8,7 @@ def preprocess_tweet(tweet):
     tweet = tweet.lower()
     tweet = re.sub('((www\.[^\s]+)|(https?://[^\s]+)|(http?://[^\s]+))','<url>',tweet)
     tweet = re.sub('@[^\s]+','<user>',tweet)
-    tweet = re.sub(r'#([^\s]+)', r'\1', tweet)
+    #tweet = re.sub(r'#([^\s]+)', r'\1', tweet)
     try:
         tweet = tweet.decode('unicode_escape').encode('ascii','ignore')
     except:
@@ -16,7 +16,7 @@ def preprocess_tweet(tweet):
     return tweet
 
 emo_dict = {}
-word2vec = load_glove_vec('embeddings/glove.twitter.27B.50d.txt',{},' ')
+
 
 def read_emo(path):
     with open(path) as f:
@@ -68,15 +68,6 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=140):
   return data_idx
 
 
-def normalize_unknown(tweet,word2vec):
-    unknown_cnt = 0
-    for i,token in enumerate(tweet):
-        if word2vec.get(token, None) == None:
-            tweet[i] = 'UNK'
-            unknown_cnt += 1
-    return tweet
-
-
 def store_file(f_in,f_out,alphabet,dummy_word_idx):
     tknzr = TweetTokenizer(reduce_len=True)
     counter = 0
@@ -90,10 +81,7 @@ def store_file(f_in,f_out,alphabet,dummy_word_idx):
             tweet = tweet.encode('utf-8')
             tweet = preprocess_tweet(tweet)
             tweet = tknzr.tokenize(tweet.decode('utf-8'))
-            tweet_norm = normalize_unknown(tweet,word2vec)
-            for token in tweet_norm:
-                alphabet.add(token)
-            tweet_batch.append(tweet_norm)
+            tweet_batch.append(tweet)
             counter += 1
             if counter%batch_size == 0:
                 tweet_idx = convert2indices(tweet_batch,alphabet,dummy_word_idx)
