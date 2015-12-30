@@ -45,8 +45,7 @@ def add_to_vocab(data, alphabet):
 CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
 
-if __name__ == '__main__':
-
+def main():
     input_fname = 'small'
     if len(sys.argv) > 1:
         input_fname = sys.argv[1]
@@ -106,3 +105,5 @@ if __name__ == '__main__':
         np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
         np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
 
+if __name__ == '__main__':
+    main()
