@@ -35,24 +35,24 @@ For the supervised use:
 - task-B-train-plus-dev
 - twitter-test-gold-B.downloaded
 
-For the distant supervised the tweets neet to be gzipped and have the form: smiley_tweets_<name>_pos.gz and smiley_tweets__<name>_neg.gz.
-If you have all tweets in the same gz you can use the partition_tweets.py <name> to split the tweets.
+For the distant supervised the tweets neet to be gzipped and have the form: smiley_tweets_\<name>_pos.gz and smiley_tweets__\<name>_neg.gz.
+If you have all tweets in the same gz you can use the partition_tweets.py \<name> to split the tweets.
 
 In the embeddings folder:
 - glove.twitter.27B.50d for the glove embeddings
 - or
-- smiley_tweets_embedding_<name> for the custom made embeddings
+- smiley_tweets_embedding_\<name> for the custom made embeddings
 
 # PREPROCESS
-Note that <name> is 'small' in the provided sample case.
-- python create_word_embeddings.py <name>
-- python create_alphabet.py -i <name> -e <embedding: glove or custom>
-- python parse_tweets.py -i <name> -e <embedding: glove or custom>
-- python glove_embeddings.py -i <name> -e <embedding: glove or custom>
+Note that \<name> is 'small' in the provided sample case.
+- python create_word_embeddings.py \<name>
+- python create_alphabet.py -i \<name> -e \<embedding: glove or custom>
+- python parse_tweets.py -i \<name> -e \<embedding: glove or custom>
+- python glove_embeddings.py -i \<name> -e \<embedding: glove or custom>
 
 
 # TRAIN AND TEST
-- THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python sentence_vectors.py -i \<name> -e <embedding: glove or custom>
+- THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python sentence_vectors.py -i \<name> -e \<embedding: glove or custom>
 
 
 # REFERENCES
