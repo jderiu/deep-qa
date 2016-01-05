@@ -30,17 +30,18 @@ Python packages can be easily installed using the standard tool: pip install <pa
 in the semeval folder place your tweets. 
 
 For the supervised use:
--task-B-test2014-twitter
--task-B-test2015-twitter
--task-B-train-plus-dev
--twitter-test-gold-B.downloaded
+- task-B-test2014-twitter
+- task-B-test2015-twitter
+- task-B-train-plus-dev
+- twitter-test-gold-B.downloaded
 
 For the distant supervised the tweets neet to be gzipped and have the form: smiley_tweets_<name>_pos.gz and smiley_tweets__<name>_neg.gz.
 If you have all tweets in the same gz you can use the partition_tweets.py <name> to split the tweets.
 
 In the embeddings folder:
--glove.twitter.27B.50d for the glove embeddings
--smiley_tweets_embedding_<name> for the custom made embeddings
+- glove.twitter.27B.50d for the glove embeddings
+- or
+- smiley_tweets_embedding_<name> for the custom made embeddings
 
 # PREPROCESS
 Note that <name> is 'small' in the provided sample case.
