@@ -52,7 +52,7 @@ Note that <name> is 'small' in the provided sample case.
 
 
 # TRAIN AND TEST
-- THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python sentence_vectors.py -i <name> -e <embedding: glove or custom>
+- THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python sentence_vectors.py -i \<name> -e <embedding: glove or custom>
 
 
 # REFERENCES
