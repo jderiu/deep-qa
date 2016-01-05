@@ -3,13 +3,13 @@ import numpy
 import os
 import theano
 from theano import tensor as T
-from theano import function,printing,sandbox
+from theano import function
 import nn_layers
 import sgd_trainer
 from tqdm import tqdm
 import time
 from sklearn import metrics
-from collections import Counter
+import getopt
 import theano.sandbox.cuda.basic_ops
 import sys
 
@@ -76,13 +76,20 @@ def semeval_f1(y_truth,y_pred):
     else:
         posRecall = 1.0*posRecallUp/posRecallDown
 
-    negF1 = 2*(negPrecision*negRecall)/(negPrecision + negRecall)
-    posF1 = 2*(posPrecision*posRecall)/(posPrecision + posRecall)
+    if (negRecall + negPrecision) == 0:
+        negF1 = 0.0
+    else:
+        negF1 = 2*(negPrecision*negRecall)/(negPrecision + negRecall)
+
+    if (posRecall + posPrecision) == 0:
+        posF1 = 0.0
+    else:
+        posF1 = 2*(posPrecision*posRecall)/(posPrecision + posRecall)
 
     f1 = (negF1 + posF1)/2
     return f1
 
-def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir,parameter_map,n_outs=2,early_stop=5,check_freq=300):
+def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir,parameter_map,n_outs=2,early_stop=5,check_freq=300,sup_type='distant'):
     params = nnet.params
     ZEROUT_DUMMY_WORD = True
 
@@ -116,7 +123,7 @@ def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_
                     best_dev_acc = dev_acc
                     best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
                     no_best_dev_update = 0
-                    cPickle.dump(parameter_map, open(data_dir+'/parameters.p', 'wb'))
+                    cPickle.dump(parameter_map, open(data_dir+'/parameters_{}.p'.format(sup_type), 'wb'))
 
         if no_best_dev_update >= early_stop:
             print "Quitting after of no update of the best score on dev set", no_best_dev_update
@@ -164,22 +171,53 @@ def get_next_chunck(pos_file,neg_file,n_chunchks=1):
     return tweet_set,sentiment_set
 
 
+def usage():
+    print 'python parse_tweets.py -i <small,30M> -e <embedding:glove or custom>'
+
 
 def main():
+    timestamp = str(long(time.time()*1000))
     input_fname = 'small'
-    if len(sys.argv) > 1:
-        input_fname = sys.argv[1]
-        print input_fname
+    embedding = 'glove'
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    for o, a in opts:
+        if o in ("-e","--embedding"):
+            if a in ('glove','custom'):
+                embedding = a
+            else:
+                usage()
+                sys.exit()
+        elif o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif o in ("-i", "--input"):
+            input_fname = a
+        else:
+            assert False, "unhandled option"
+
+
+
     data_dir = HOME_DIR + '_' + input_fname
 
-    fname_ps = open(os.path.join(data_dir, 'smiley_tweets_pos.tweets.npy'),'rb')
-    fname_neg = open(os.path.join(data_dir, 'smiley_tweets_neg.tweets.npy'),'rb')
+    fname_ps = open(os.path.join(data_dir, 'smiley_tweets_pos_{}.tweets.npy'.format(embedding)),'rb')
+    fname_neg = open(os.path.join(data_dir, 'smiley_tweets_neg_{}.tweets.npy'.format(embedding)),'rb')
     numpy_rng = numpy.random.RandomState(123)
 
     q_max_sent_size = 140
 
     # Load word2vec embeddings
-    fname_wordembeddings = os.path.join(data_dir, 'emb_glove.twitter.27B.50d.txt.npy')
+    if embedding == 'glove':
+        embedding_fname = 'emb_glove.twitter.27B.50d.txt.npy'
+    else:
+        embedding_fname = 'emb_smiley_tweets_embedding_{}.npy'.format(input_fname)
+
+    fname_wordembeddings = os.path.join(data_dir, embedding_fname)
 
     print "Loading word embeddings from", fname_wordembeddings
     vocab_emb = numpy.load(fname_wordembeddings)
@@ -318,6 +356,7 @@ def main():
     batch_y = T.lvector('batch_y')
 
     params = nnet_tweets.params
+    print params
     cost = nnet_tweets.layers[-1].training_cost(y)
     predictions = nnet_tweets.layers[-1].y_pred
     predictions_prob = nnet_tweets.layers[-1].p_y_given_x[:, -1]
@@ -364,22 +403,22 @@ def main():
         preds = numpy.hstack([pred_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
-
+    batch_number = 1
     while True:
         smiley_set_tweets,smiley_set_seniments = get_next_chunck(fname_ps,fname_neg,n_chunchks=4)
         if smiley_set_tweets == None:
             break
-
+        print 'Chunk number:',batch_number
         smiley_set_seniments=smiley_set_seniments.astype(int)
 
         smiley_set = zip(smiley_set_tweets,smiley_set_seniments)
         numpy_rng.shuffle(smiley_set)
         smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
 
-        train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.95)]
-        dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.95):int(len(smiley_set_tweets) * 1)]
-        y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.95)]
-        y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.95):int(len(smiley_set_seniments) * 1)]
+        train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.98)]
+        dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.98):int(len(smiley_set_tweets) * 1)]
+        y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.98)]
+        y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.98):int(len(smiley_set_seniments) * 1)]
 
         print "Length trains_set:", len(train_set)
         print "Length dev_set:", len(dev_set)
@@ -401,19 +440,19 @@ def main():
         )
 
         check_freq = train_set_iterator.n_batches/10
-        training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir=data_dir,parameter_map=parameter_map,early_stop=3,check_freq=check_freq)
+        training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir=data_dir,parameter_map=parameter_map,early_stop=3,check_freq=check_freq,sup_type='distant')
 
-        cPickle.dump(parameter_map, open(data_dir+'/parameters.p', 'wb'))
+        batch_number += 1
 
     #######################
     # Supervised Learining#
     ######################
 
-    training_tweets = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tweets.npy'))
-    training_sentiments = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.sentiments.npy'))
+    training_tweets = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev_{}.tweets.npy'.format(embedding)))
+    training_sentiments = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev_{}.sentiments.npy'.format(embedding)))
 
-    dev_tweets = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.tweets.npy'))
-    dev_sentiments = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded.sentiments.npy'))
+    dev_tweets = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded_{}.tweets.npy'.format(embedding)))
+    dev_sentiments = numpy.load(os.path.join(data_dir, 'twitter-test-gold-B.downloaded_{}.sentiments.npy'.format(embedding)))
 
     train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
         numpy_rng,
@@ -466,14 +505,14 @@ def main():
     n_epochs = 100
 
     check_freq = train_set_iterator.n_batches/10
-    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_batch,dev_sentiments,data_dir=data_dir,parameter_map=parameter_map,n_outs=3,early_stop=10,check_freq=check_freq)
+    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_batch,dev_sentiments,data_dir=data_dir,parameter_map=parameter_map,n_outs=3,early_stop=10,check_freq=check_freq,sup_type='supervised')
 
 
     #######################
     # Get Sentence Vectors#
     ######################
-    test_tweets = numpy.load(os.path.join(data_dir, 'all_merged.tweets.npy'))
-    qids_test = numpy.load(os.path.join(data_dir, 'all_merged.tids.npy'))
+    test_tweets = numpy.load(os.path.join(data_dir, 'all_merged_{}.tweets.npy'.format(embedding)))
+    qids_test = numpy.load(os.path.join(data_dir, 'all_merged_{}.tids.npy'.format(embedding)))
 
     inputs_senvec = [batch_tweets]
     givents_senvec = {tweets:batch_tweets}
@@ -490,7 +529,7 @@ def main():
     )
 
     counter = 0
-    fname = open(os.path.join(data_dir,'twitter_sentence_vecs.txt'), 'w+')
+    fname = open(os.path.join(data_dir,'twitter_sentence_vecs_{}.txt'.format(timestamp)), 'w+')
     for i, (tweet) in enumerate(tqdm(test_set_iterator), 1):
         o = output_fn(tweet[0])
         for vec in o:

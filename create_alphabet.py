@@ -1,11 +1,12 @@
 import sys
 from nltk.tokenize import TweetTokenizer
-from parse_tweets_sheffield import preprocess_tweet
+from parse_tweets_sheffield import preprocess_tweet,convertSentiment
 from utils import load_glove_vec
 import gzip
 import cPickle
 import os
 import operator
+import getopt
 
 class Alphabet(dict):
     def __init__(self, start_feature_id=1):
@@ -27,8 +28,13 @@ class Alphabet(dict):
             for k in sorted(self.keys()):
                 out.write("{}\t{}\n".format(k, self[k]))
 
-    def purge_dict(self,min_freq=5):
-        word2vec = load_glove_vec('embeddings/glove.twitter.27B.50d.txt',{},' ')
+    def purge_dict(self,input_fname,min_freq=5,emb='glove'):
+        if emb == 'glove':
+            emb_fname,delimiter,ndim = ('embeddings/glove.twitter.27B.50d.txt',' ',50)
+        else:
+            emb_fname,delimiter,ndim = ('embeddings/smiley_tweets_embedding_{}'.format(input_fname),' ',52)
+
+        word2vec = load_glove_vec(emb_fname,{},delimiter,ndim)
         for k in self.keys():
             idx,freq = self[k]
             if freq < min_freq and word2vec.get(k, None) == None:
@@ -44,13 +50,40 @@ class Alphabet(dict):
         self.fid = counter
 
 
+def usage():
+    print 'python create_alphabet.py -i <small,30M> -e <embedding:glove or custom>'
+
+
 def main():
     HOME_DIR = "semeval_parsed"
     input_fname = 'small'
-    if len(sys.argv) > 1:
-        input_fname = sys.argv[1]
+    embedding = 'glove'
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    for o, a in opts:
+        if o in ("-e","--embedding"):
+            if a in ('glove','custom'):
+                embedding = a
+            else:
+                usage()
+                sys.exit()
+        elif o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif o in ("-i", "--input"):
+            input_fname = a
+        else:
+            assert False, "unhandled option"
 
     outdir = HOME_DIR + '_' + input_fname
+
+    print embedding
+    print input_fname
 
     train = "semeval/task-B-train-plus-dev.tsv"
     test = "semeval/task-B-test2014-twitter.tsv"
@@ -72,6 +105,8 @@ def main():
     for fname in fnames:
         with open(fname,'r ') as f:
             for tweet in f:
+                tweet,_ = convertSentiment(tweet)
+                tweet = tweet.encode('utf-8')
                 tweet = tknzr.tokenize(preprocess_tweet(tweet).decode('utf-8'))
                 for token in tweet:
                     alphabet.add(token)
@@ -80,6 +115,8 @@ def main():
     for fname in fnames_gz:
         with gzip.open(fname,'r') as f:
             for tweet in f:
+                tweet,_ = convertSentiment(tweet)
+                tweet = tweet.encode('utf-8')
                 tweet = tknzr.tokenize(preprocess_tweet(tweet).decode('utf-8'))
                 for token in tweet:
                     alphabet.add(token)
@@ -89,28 +126,11 @@ def main():
 
         print len(alphabet)
 
-    for fname in fnames:
-        with open(fname,'r ') as f:
-            for tweet in f:
-                tweet = tknzr.tokenize(preprocess_tweet(tweet))
-                for token in tweet:
-                    alphabet.add(token)
-        print len(alphabet)
-
     print 'Alphabet before purge:',len(alphabet)
-    alphabet.purge_dict(min_freq=5)
+    alphabet.purge_dict(input_fname=input_fname,min_freq=5,emb=embedding)
     print 'Alphabet after purge:',len(alphabet)
-    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab.pickle'), 'w'))
+    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab_{}.pickle'.format(embedding)), 'w'))
 
 
 if __name__ == '__main__':
-    alphabet = Alphabet(start_feature_id=0)
-    alphabet.add('UNKNOWN_WORD_IDX')
-    dummy_word_idx = alphabet.fid
-    alphabet.add('1')
-    alphabet.add('1')
-    alphabet.add('2')
-    alphabet.add('home')
-    alphabet.purge_dict()
-
     main()

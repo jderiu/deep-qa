@@ -2,50 +2,74 @@ import numpy as np
 import cPickle
 import os
 import sys
-
-from alphabet import Alphabet
+import getopt
 from utils import load_glove_vec
+from alphabet import Alphabet
 
-CL_DIR = "/cluster/work/scr2/jderiu/semeval"
-HOME_DIR = "semeval_parsed"
+
+def usage():
+    print 'python glove_embeddings.py -i <small,30M> -v <embedding:glove or custom>'
+
 
 def main():
-  np.random.seed(123)
-  input_fname = 'small'
-  if len(sys.argv) > 1:
-      input_fname = sys.argv[1]
-      print input_fname
+    HOME_DIR = "semeval_parsed"
+    np.random.seed(123)
+    input_fname = 'small'
+    embedding = 'glove'
 
-  data_dirs = [HOME_DIR + '_' + input_fname]
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hi:v:", ["help", "input=","vocab="])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    for o, a in opts:
+        if o in ("-v","--vocab"):
+            if a in ('glove','custom'):
+                embedding = a
+            else:
+                usage()
+                sys.exit()
+        elif o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif o in ("-i", "--input"):
+            input_fname = a
+        else:
+            assert False, "unhandled option"
 
-  for data_dir in data_dirs:
-    fname_vocab = os.path.join(data_dir, 'vocab.pickle')
+    data_dir = HOME_DIR + '_' + input_fname
+
+    fname_vocab = os.path.join(data_dir, 'vocab_{}.pickle'.format(embedding))
     alphabet = cPickle.load(open(fname_vocab))
     words = alphabet.keys()
     print "Vocab size", len(alphabet)
+    if embedding == 'glove':
+        fname,delimiter,ndim = ('embeddings/glove.twitter.27B.50d.txt',' ',50)
+    elif embedding == 'custom':
+        fname,delimiter,ndim = ('embeddings/smiley_tweets_embedding_{}'.format(input_fname),' ',52)
+    else:
+        sys.exit()
 
-    for fname,delimiter in [
-      ('embeddings/glove.twitter.27B.50d.txt',' ')]:
-      word2vec = load_glove_vec(fname,words,delimiter)
+    word2vec = load_glove_vec(fname,words,delimiter,ndim)
 
-      ndim = len(word2vec[word2vec.keys()[0]])
-      print 'ndim', ndim
+    ndim = len(word2vec[word2vec.keys()[0]])
+    print 'ndim', ndim
 
-      random_words_count = 0
-      vocab_emb = np.zeros((len(alphabet) + 1, ndim),dtype='float32')
-      for word,idx in alphabet.iteritems():
+    random_words_count = 0
+    vocab_emb = np.zeros((len(alphabet) + 1, ndim),dtype='float32')
+    for word,idx in alphabet.iteritems():
         word_vec = word2vec.get(word, None)
         if word_vec is None:
           word_vec = np.random.uniform(-0.25, 0.25, ndim)
           random_words_count += 1
         vocab_emb[idx] = word_vec
-      print "Using zero vector as random"
-      print 'random_words_count', random_words_count
-      print vocab_emb.shape
-      outfile = os.path.join(data_dir, 'emb_{}.npy'.format(os.path.basename(fname)))
-      print outfile
-      np.save(outfile, vocab_emb)
-
+    print "Using zero vector as random"
+    print 'random_words_count', random_words_count
+    print vocab_emb.shape
+    outfile = os.path.join(data_dir, 'emb_{}.npy'.format(os.path.basename(fname)))
+    print outfile
+    np.save(outfile, vocab_emb)
 
 if __name__ == '__main__':
   main()

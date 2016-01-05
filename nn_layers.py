@@ -189,6 +189,7 @@ class LookupTableFastStatic(Layer):
       super(LookupTableFastStatic, self).__init__()
       self.pad = pad
       self.W = theano.shared(value=W, name='W_emb', borrow=True)
+      self.weights = [self.W]
 
     def output_func(self, input):
       out = self.W[input.flatten()].reshape((input.shape[0], 1, input.shape[1], self.W.shape[1]))
@@ -281,7 +282,7 @@ class LinearLayer(Layer):
                 high=numpy.sqrt(6. / (n_in + n_out)),
                 size=(n_in, n_out)), dtype=theano.config.floatX)
 
-      W = theano.shared(value=W_values, name='W', borrow=True)
+      W = theano.shared(value=W_values, name='', borrow=True)
     if b is None:
       b = build_shared_zeros((n_out,), 'b')
 

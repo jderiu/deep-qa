@@ -9,19 +9,46 @@ from tqdm import tqdm
 import sgd_trainer
 import sys
 import sentence_vectors as sv
+import time
+import getopt
 
-CL_DIR = "/cluster/work/scr2/jderiu/semeval"
-HOME_DIR = "semeval_parsed"
+
+def usage():
+    print 'python load_sentence_vecs.py -i <small,30M> -e <embedding:glove or custom>'
+
+
 def main():
     ##########
     # LAYERS #
     #########
-    input_fname = 'small'
-    if len(sys.argv) > 1:
-        input_fname = sys.argv[1]
-        print input_fname
-    data_dir = HOME_DIR + '_' + input_fname
 
+    HOME_DIR = "semeval_parsed"
+    timestamp = str(long(time.time()*1000))
+    input_fname = 'small'
+    embedding = 'glove'
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    for o, a in opts:
+        if o in ("-e","--embedding"):
+            if a in ('glove','custom'):
+                embedding = a
+            else:
+                usage()
+                sys.exit()
+        elif o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif o in ("-i", "--input"):
+            input_fname = a
+        else:
+            assert False, "unhandled option"
+
+    data_dir = HOME_DIR + '_' + input_fname
     numpy_rng = numpy.random.RandomState(123)
     parameterMap = cPickle.load(open(data_dir+'/parameters.p', 'rb'))
     input_shape = parameterMap['inputShape']
@@ -95,11 +122,11 @@ def main():
     ######################
     batch_size = 500
 
-    training_tweets = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.tweets.npy'))
-    training_sentiments = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev.sentiments.npy'))
+    training_tweets = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev_{}.tweets.npy'.format(embedding)))
+    training_sentiments = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev_{}.sentiments.npy'.format(embedding)))
 
-    dev_tweets = numpy.load(os.path.join(data_dir, 'task-B-test2015-twitter.tweets.npy'))
-    dev_sentiments = numpy.load(os.path.join(data_dir, 'task-B-test2015-twitter.sentiments.npy'))
+    dev_tweets = numpy.load(os.path.join(data_dir, 'task-B-test2015-twitter_{}.tweets.npy'.format(embedding)))
+    dev_sentiments = numpy.load(os.path.join(data_dir, 'task-B-test2015-twitter_{}.sentiments.npy'.format(embedding)))
 
     inputs_train = [batch_tweets, batch_y]
     givens_train = {tweets: batch_tweets,
@@ -165,7 +192,7 @@ def main():
         preds = numpy.hstack([pred_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
-    n_epochs = 20
+    n_epochs = 100
     check_freq = train_set_iterator.n_batches/10
     sv.training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_batch,dev_sentiments,data_dir=data_dir,parameter_map=parameterMap,n_outs=3,early_stop=10,check_freq=check_freq)
 
@@ -175,8 +202,8 @@ def main():
     ######################
 
     batch_size = input_shape[0]
-    test_tweets = numpy.load(os.path.join(data_dir, 'all_merged.tweets.npy'))
-    qids_test = numpy.load(os.path.join(data_dir, 'all_merged.tids.npy'))
+    test_tweets = numpy.load(os.path.join(data_dir, 'all_merged_{}.tweets.npy'.format(embedding)))
+    qids_test = numpy.load(os.path.join(data_dir, 'all_merged_{}.tids.npy'.format(embedding)))
 
     inputs_senvec = [batch_tweets]
     givents_senvec = {tweets:batch_tweets}
@@ -194,7 +221,7 @@ def main():
     )
 
     counter = 0
-    fname = open(os.path.join(data_dir,'twitter_sentence_vecs_loaded.txt'), 'w+')
+    fname = open(os.path.join(data_dir,'twitter_sentence_vecs_loaded_{}.txt'.format(timestamp)), 'w+')
     for i, tweet in enumerate(tqdm(test_set_iterator), 1):
         o = output_fn(tweet[0])
         for vec in o:

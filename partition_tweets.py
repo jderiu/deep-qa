@@ -6,18 +6,19 @@ import sys
 
 
 def main():
-    input_fname = 'smiley_tweets_small'
+    input_fname = 'smiley_tweets_30M'
     if len(sys.argv) > 1:
         input_fname = sys.argv[1]
         print input_fname
 
     input_file = 'semeval/'+input_fname+'.gz'
+    input_file = 'semeval/pos.rand30M.txt'
     pos_output = open('semeval/'+input_fname+'_pos.txt','w')
     neg_output = open('semeval/'+input_fname+'_neg.txt','w')
     read_emo('emoscores')
 
     counter = 0
-    with gzip.open(input_file,'r') as f:
+    with open(input_file,'r') as f:
         for tweet in f:
             tweet,sentiment = convertSentiment(tweet)
             tweet = tweet.encode('utf-8')

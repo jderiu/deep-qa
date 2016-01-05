@@ -177,7 +177,7 @@ def load_bin_vec(fname, words):
     return word_vecs
 
 
-def load_glove_vec(fname,words,delimiter):
+def load_glove_vec(fname,words,delimiter,dim):
   vocab = set(words)
   word_vecs = {}
   with open(fname) as f:
@@ -185,11 +185,11 @@ def load_glove_vec(fname,words,delimiter):
     for line in f:
       if line == "":
         continue
-      splits = line.split(delimiter)
-      word = splits[0].decode('utf-8')
-      if (word in vocab) or len(vocab) == 0:
+      splits = line.replace('\n','').split(delimiter)
+      word = splits[0]
+      if (word in vocab) or (word.lower() in vocab) or len(vocab) == 0:
         count += 1
-        word_vecs[word] = numpy.asarray(splits[1:],dtype='float32')
+        word_vecs[word] = numpy.asarray(splits[1:dim+1],dtype='float32')
         if count%100000 == 0:
           print "W2V Count:",count
   return word_vecs

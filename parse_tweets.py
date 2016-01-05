@@ -6,6 +6,7 @@ import subprocess
 from nltk.tokenize import TweetTokenizer
 import parse_tweets_sheffield as pts
 import sys
+import getopt
 
 UNKNOWN_WORD_IDX = 0
 
@@ -23,6 +24,7 @@ def convertSentiment(sentiment):
 def load_data(fname,alphabet):
     tid,tweets,sentiments = [],[],[]
     tknzr = TweetTokenizer(reduce_len=True)
+    n_not_available = 0
     with open(fname) as f:
         for line in f:
             splits = line.split('\t')
@@ -34,6 +36,10 @@ def load_data(fname,alphabet):
                 tweet_tok = tknzr.tokenize(tweet.decode('utf-8'))
                 tweets.append(tweet_tok)
                 sentiments.append(int(sentiment))
+            else:
+                n_not_available += 1
+
+    print "Number of not availalbe tweets:", n_not_available
     return tid,tweets,sentiments
 
 
@@ -42,13 +48,36 @@ def add_to_vocab(data, alphabet):
         for token in sentence:
             alphabet.add(token)
 
-CL_DIR = "/cluster/work/scr2/jderiu/semeval"
-HOME_DIR = "semeval_parsed"
+
+def usage():
+    print 'python parse_tweets.py -i <small,30M> -v <vocab:glove or custom>'
+
 
 def main():
+    HOME_DIR = "semeval_parsed"
     input_fname = 'small'
-    if len(sys.argv) > 1:
-        input_fname = sys.argv[1]
+    vocab = 'glove'
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hi:v:", ["help", "input=","vocab="])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    for o, a in opts:
+        if o in ("-v","--vocab"):
+            if a in ('glove','custom'):
+                vocab = a
+            else:
+                usage()
+                sys.exit()
+        elif o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif o in ("-i", "--input"):
+            input_fname = a
+        else:
+            assert False, "unhandled option"
 
     outdir = HOME_DIR + '_' + input_fname
     print outdir
@@ -62,7 +91,7 @@ def main():
     smiley_pos = 'semeval/smiley_tweets_{}_pos.gz'.format(input_fname)
     smiley_neg = 'semeval/smiley_tweets_{}_neg.gz'.format(input_fname)
 
-    fname_vocab = os.path.join(outdir, 'vocab.pickle')
+    fname_vocab = os.path.join(outdir, 'vocab_{}.pickle'.format(vocab))
     alphabet = cPickle.load(open(fname_vocab))
     dummy_word_idx = alphabet.fid
     print "alphabet", len(alphabet)
@@ -73,21 +102,22 @@ def main():
     subprocess.call("/bin/cat {} > {}".format(files, all_fname), shell=True)
     print "Loading SemEval data"
     tid, tweets, sentiments = load_data(all_fname,alphabet)
+    print "Number of tweets in all_merged",len(tweets)
 
     print "Loading Smiley Data"
 	#save sheffield tweets
-    basename, _ = os.path.splitext(os.path.basename('smiley_tweets_pos'.format(input_fname)))
+    basename, _ = os.path.splitext(os.path.basename('smiley_tweets_pos_{}'.format(vocab)))
     nTweets = pts.store_file(smiley_pos,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)
     print "Number of tweets:", nTweets
 
-    basename, _ = os.path.splitext(os.path.basename('smiley_tweets_neg'.format(input_fname)))
+    basename, _ = os.path.splitext(os.path.basename('smiley_tweets_neg_{}'.format(vocab)))
     nTweets = pts.store_file(smiley_neg,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)
     print "Number of tweets:", nTweets
 
 	#save semeval tweets all
     tweet_idx = pts.convert2indices(tweets, alphabet, dummy_word_idx)
     print "Number of tweets:", len(tweets)
-    basename, _ = os.path.splitext(os.path.basename("all_merged"))
+    basename, _ = os.path.splitext(os.path.basename("all_merged_{}".format(vocab)))
     np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
     np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
     np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
@@ -101,9 +131,9 @@ def main():
         tweet_idx = pts.convert2indices(tweets, alphabet, dummy_word_idx)
 
         basename, _ = os.path.splitext(os.path.basename(fname))
-        np.save(os.path.join(outdir, '{}.tids.npy'.format(basename)), tid)
-        np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
-        np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
+        np.save(os.path.join(outdir, '{}_{}.tids.npy'.format(basename,vocab)), tid)
+        np.save(os.path.join(outdir, '{}_{}.tweets.npy'.format(basename,vocab)), tweet_idx)
+        np.save(os.path.join(outdir, '{}_{}.sentiments.npy'.format(basename,vocab)), sentiments)
 
 if __name__ == '__main__':
     main()

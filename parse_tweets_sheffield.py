@@ -95,6 +95,7 @@ def store_file(f_in,f_out,alphabet,dummy_word_idx):
     print 'Saved tweets:',tweet_idx.shape
     return counter
 
+
 def load_data(fname):
     read_emo('emoscores')
     tweets,sentiments = [],[]
