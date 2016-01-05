@@ -50,7 +50,7 @@ def add_to_vocab(data, alphabet):
 
 
 def usage():
-    print 'python parse_tweets.py -i <small,30M> -v <vocab:glove or custom>'
+    print 'python parse_tweets.py -i <small,30M> -e <vocab:glove or custom>'
 
 
 def main():
@@ -59,13 +59,13 @@ def main():
     vocab = 'glove'
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:v:", ["help", "input=","vocab="])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
     for o, a in opts:
-        if o in ("-v","--vocab"):
+        if o in ("-e","--embedding"):
             if a in ('glove','custom'):
                 vocab = a
             else:

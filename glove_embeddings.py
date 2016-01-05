@@ -8,7 +8,7 @@ from alphabet import Alphabet
 
 
 def usage():
-    print 'python glove_embeddings.py -i <small,30M> -v <embedding:glove or custom>'
+    print 'python glove_embeddings.py -i <small,30M> -e <embedding:glove or custom>'
 
 
 def main():
@@ -18,13 +18,13 @@ def main():
     embedding = 'glove'
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:v:", ["help", "input=","vocab="])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
     for o, a in opts:
-        if o in ("-v","--vocab"):
+        if o in ("-e","--embedding"):
             if a in ('glove','custom'):
                 embedding = a
             else:

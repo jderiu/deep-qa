@@ -21,52 +21,38 @@ Evaluation is performed using the standard 'trec_eval' script.
 - tqdm
 - fish
 - numba
+- nltk
+- gensim
 
 Python packages can be easily installed using the standard tool: pip install <package>
 
+#SETUP
+in the semeval folder place your tweets. 
 
-# EMBEDDINGS
+For the supervised use:
+-task-B-test2014-twitter
+-task-B-test2015-twitter
+-task-B-train-plus-dev
+-twitter-test-gold-B.downloaded
 
-The pre-initialized word2vec embeddings have to be downloaded from [here](https://drive.google.com/folderview?id=0B-yipfgecoSBfkZlY2FFWEpDR3M4Qkw5U055MWJrenE5MTBFVXlpRnd0QjZaMDQxejh1cWs&usp=sharing).
+For the distant supervised the tweets neet to be gzipped and have the form: smiley_tweets_<name>_pos.gz and smiley_tweets__<name>_neg.gz.
+If you have all tweets in the same gz you can use the partition_tweets.py <name> to split the tweets.
 
+In the embeddings folder:
+-glove.twitter.27B.50d for the glove embeddings
+-smiley_tweets_embedding_<name> for the custom made embeddings
 
-# BUILD
-
-To build the required train/dev/test sets in the suitable format for the network run:
-
->$ sh run_build_datasets.sh
-
-It will parse the raw XML files containg QA pairs and convert them into a suitable format for the deep learning model.
-The output files are stored under the folders TRAIN and TRAIN-ALL corresponding to the TRAIN and TRAIN-ALL training settings as described in the paper.
-
-At the next step the script will extract the word embeddings for the all words in the vocabulary.
-We use the pre-trained word embeddings obtained by running the word2vec tool on a merged Wiki dump and Aquaint corpus (provided under the 'embeddings' folder.
-The missing words are randomly initalized with the uniform distribution [-0.25; +0.25]. For the further details please refer to the paper.
+# PREPROCESS
+Note that <name> is 'small' in the provided sample case.
+- python create_word_embeddings.py <name>
+- python create_alphabet.py -i <name> -e <embedding: glove or custom>
+- python parse_tweets.py -i <name> -e <embedding: glove or custom>
+- python glove_embeddings.py -i <name> -e <embedding: glove or custom>
 
 
 # TRAIN AND TEST
+- THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python sentence_vectors.py -i <name> -e <embedding: glove or custom>
 
-To train the model in the TRAIN setting run:
-
->$ python run_nnet.py TRAIN
-
-in the TRAIN-ALL setting using 53,417 qa pairs:
-
->$ python run_nnet.py TRAIN-ALL
-
-The parameters of the trained network are dumped under the 'exp.out' folder.
-
-The results reported by the 'trec_eval' script should be around these numbers:
-
-TRAIN:
-MAP: 0.7325
-MRR: 0.8018
-
-TRAIN-ALL:
-MAP: 0.7654
-MRR: 0.8186
-
-NOTE: Small variations on different platforms are expected due to differences in random seeds which affect random initialization of network weights.
 
 # REFERENCES
 
