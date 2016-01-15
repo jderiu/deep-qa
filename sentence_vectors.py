@@ -288,12 +288,49 @@ def main():
 
         parameter_map['NonLinearityLayerB' + str(filter_width)] = non_linearity.b
 
-        pooling = nn_layers.KMaxPoolLayer(k_max=k_max)
+        shape = 2
+        pooling = nn_layers.KMaxPoolLayerNative(shape=shape)
+
+        parameter_map['PoolingShape'] = shape
+
+        input_shape2 = (
+            batch_size,
+            nkernels,
+            input_shape[2]//2 - 2,
+            1
+        )
+
+        parameter_map['input_shape2'+ str(filter_width)] = input_shape2
+
+        filter_shape2 = (
+            nkernels,
+            nkernels,
+            filter_width//2,
+            1
+        )
+
+        parameter_map['filter_shape2' + str(filter_width)] = filter_shape2
+
+        con2 = nn_layers.Conv2dLayer(
+            rng=numpy_rng,
+            input_shape=input_shape2,
+            filter_shape=filter_shape2
+        )
+
+        non_linearity2 = nn_layers.NonLinearityLayer(
+            b_size=filter_shape2[0],
+            activation=activation
+        )
+
+        pooling2 = nn_layers.KMaxPoolLayer(k_max=k_max)
 
         conv2dNonLinearMaxPool = nn_layers.FeedForwardNet(layers=[
             conv,
             non_linearity,
-            pooling
+            pooling,
+            con2,
+            non_linearity2,
+            pooling2
         ])
         conv_layers.append(conv2dNonLinearMaxPool)
 
