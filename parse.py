@@ -197,7 +197,7 @@ if __name__ == '__main__':
     add_to_vocab(questions, alphabet)
 
     basename = os.path.basename(train)
-    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab.pickle'), 'w'))
+    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab_glove.pickle'), 'w'))
     print "alphabet", len(alphabet)
 
     dummy_word_idx = alphabet.fid

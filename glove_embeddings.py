@@ -16,9 +16,10 @@ def main():
     np.random.seed(123)
     input_fname = 'small'
     embedding = 'glove'
+    type = 'small'
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:t:", ["help", "input=","embedding=","type="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -35,6 +36,8 @@ def main():
             sys.exit()
         elif o in ("-i", "--input"):
             input_fname = a
+        elif o in ("-t", "--type"):
+            type = a
         else:
             assert False, "unhandled option"
 
@@ -47,7 +50,7 @@ def main():
     if embedding == 'glove':
         fname,delimiter,ndim = ('embeddings/glove.twitter.27B.50d.txt',' ',50)
     elif embedding == 'custom':
-        fname,delimiter,ndim = ('embeddings/smiley_tweets_embedding_{}'.format(input_fname),' ',52)
+        fname,delimiter,ndim = ('embeddings/smiley_tweets_embedding_{}'.format(type),' ',52)
     else:
         sys.exit()
 
@@ -67,6 +70,7 @@ def main():
     print "Using zero vector as random"
     print 'random_words_count', random_words_count
     print vocab_emb.shape
+    fname = 'embeddings/smiley_tweets_embedding_{}'.format(input_fname)
     outfile = os.path.join(data_dir, 'emb_{}.npy'.format(os.path.basename(fname)))
     print outfile
     np.save(outfile, vocab_emb)

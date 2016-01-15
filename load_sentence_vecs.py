@@ -8,9 +8,9 @@ import os
 from tqdm import tqdm
 import sgd_trainer
 import sys
-import sentence_vectors as sv
 import time
 import getopt
+from sentence_vectors import semeval_f1
 
 
 def usage():
@@ -25,7 +25,7 @@ def main():
     HOME_DIR = "semeval_parsed"
     timestamp = str(long(time.time()*1000))
     input_fname = 'small'
-    embedding = 'glove'
+    embedding = 'custom'
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
@@ -50,22 +50,22 @@ def main():
 
     data_dir = HOME_DIR + '_' + input_fname
     numpy_rng = numpy.random.RandomState(123)
-    parameterMap = cPickle.load(open(data_dir+'/parameters.p', 'rb'))
-    input_shape = parameterMap['inputShape']
-    filter_widths = parameterMap['filterWidths']
-    activation = parameterMap['activation']
-    q_logistic_n_in = parameterMap['qLogisticIn']
-    k_max = parameterMap['kmax']
+    parameter_map = cPickle.load(open(data_dir+'/parameters_distant.p', 'rb'))
+    input_shape = parameter_map['inputShape']
+    filter_widths = parameter_map['filterWidths']
+    activation = parameter_map['activation']
+    q_logistic_n_in = parameter_map['qLogisticIn']
+    k_max = parameter_map['kmax']
 
     tweets = T.imatrix('tweets_train')
     y = T.lvector('y')
     batch_tweets= T.imatrix('batch_x_q')
     batch_y = T.lvector('batch_y')
 
-    print type(parameterMap['LookupTableFastStaticW'].get_value()[0][0])
+    print type(parameter_map['LookupTableFastStaticW'].get_value()[0][0])
 
     lookup_table_words = nn_layers.LookupTableFastStatic(
-        W=parameterMap['LookupTableFastStaticW'].get_value(),
+        W=parameter_map['LookupTableFastStaticW'].get_value(),
         pad=max(filter_widths)-1
     )
 
@@ -73,15 +73,15 @@ def main():
     for filter_width in filter_widths:
 
         conv = nn_layers.Conv2dLayer(
-            W=parameterMap['Conv2dLayerW' + str(filter_width)],
+            W=parameter_map['Conv2dLayerW' + str(filter_width)],
             rng=numpy_rng,
-            filter_shape=parameterMap['FilterShape' + str(filter_width)],
+            filter_shape=parameter_map['FilterShape' + str(filter_width)],
             input_shape=input_shape
         )
 
         non_linearity = nn_layers.NonLinearityLayer(
-            b=parameterMap['NonLinearityLayerB' + str(filter_width)],
-            b_size=parameterMap['FilterShape' + str(filter_width)][0],
+            b=parameter_map['NonLinearityLayerB' + str(filter_width)],
+            b_size=parameter_map['FilterShape' + str(filter_width)][0],
             activation=activation
         )
 
@@ -98,8 +98,8 @@ def main():
     flatten_layer = nn_layers.FlattenLayer()
 
     hidden_layer = nn_layers.LinearLayer(
-        W=parameterMap['LinearLayerW'],
-        b=parameterMap['LinearLayerB'],
+        W=parameter_map['LinearLayerW'],
+        b=parameter_map['LinearLayerB'],
         rng=numpy_rng,
         n_in=q_logistic_n_in,
         n_out=q_logistic_n_in,
@@ -114,13 +114,11 @@ def main():
     ])
 
     nnet_tweets.set_input(tweets)
-    print nnet_tweets
-
 
      #######################
     # Supervised Learining#
     ######################
-    batch_size = 500
+    batch_size = 100
 
     training_tweets = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev_{}.tweets.npy'.format(embedding)))
     training_sentiments = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev_{}.sentiments.npy'.format(embedding)))
@@ -192,10 +190,44 @@ def main():
         preds = numpy.hstack([pred_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
-    n_epochs = 100
-    check_freq = train_set_iterator.n_batches/10
-    sv.training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_batch,dev_sentiments,data_dir=data_dir,parameter_map=parameterMap,n_outs=3,early_stop=10,check_freq=check_freq)
+    W_emb_list = [w for w in params if w.name == 'W_emb']
+    zerout_dummy_word = theano.function([], updates=[(W, T.set_subtensor(W[-1:], 0.)) for W in W_emb_list])
 
+    epoch = 0
+    n_epochs = 100
+    early_stop = 10
+    check_freq = train_set_iterator.n_batches/10
+    timer_train = time.time()
+    no_best_dev_update = 0
+    best_dev_acc = -numpy.inf
+    num_train_batches = len(train_set_iterator)
+    while epoch < n_epochs:
+        timer = time.time()
+        for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator,ascii=True), 1):
+                train_fn(tweet, y_label)
+
+                if i % check_freq == 0 or i == num_train_batches:
+                    y_pred_dev = predict_batch(dev_set_iterator)
+                    dev_acc = semeval_f1(dev_sentiments,y_pred_dev)*100
+                    if dev_acc > best_dev_acc:
+                        print('epoch: {} chunk: {} best_chunk_auc: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, i, dev_acc,best_dev_acc))
+                        best_dev_acc = dev_acc
+                        best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
+                        no_best_dev_update = 0
+                        cPickle.dump(parameter_map, open(data_dir+'/parameters_{}.p'.format('supervised'), 'wb'))
+
+        zerout_dummy_word()
+
+        print('epoch {} took {:.4f} seconds'.format(epoch, time.time() - timer))
+        epoch += 1
+        no_best_dev_update += 1
+        if no_best_dev_update >= early_stop:
+            print "Quitting after of no update of the best score on dev set", no_best_dev_update
+            break
+
+    print('Training took: {:.4f} seconds'.format(time.time() - timer_train))
+    for i, param in enumerate(best_params):
+        params[i].set_value(param, borrow=True)
 
     #######################
     # Get Sentence Vectors#

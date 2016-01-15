@@ -1,7 +1,7 @@
 from gensim import models
 import gzip
 import sys
-from parse_tweets_sheffield import preprocess_tweet,convertSentiment
+from parse_tweets_sheffield import preprocess_tweet
 from nltk import TweetTokenizer
 import logging
 
@@ -14,13 +14,9 @@ class MySentences(object):
     def __iter__(self):
        for fname in self.files:
              for tweet in gzip.open(fname,'rb'):
-                 tweet, _ = convertSentiment(tweet)
-                 tweet = tweet.encode('utf-8')
                  tweet = preprocess_tweet(tweet)
                  tweet = self.tknzr.tokenize(tweet.decode('utf-8'))
                  yield filter(lambda word: ' ' not in word, tweet)
-
-
 
 
 def main():
@@ -34,11 +30,11 @@ def main():
     test = "semeval/task-B-test2014-twitter.tsv.gz"
     dev = "semeval/twitter-test-gold-B.downloaded.tsv.gz"
     test15 = "semeval/task-B-test2015-twitter.tsv.gz"
-    smiley_pos = 'semeval/smiley_tweets_{}_pos.gz'.format(input_fname)
-    smiley_neg = 'semeval/smiley_tweets_{}_neg.gz'.format(input_fname)
-    files = [train,test,dev,test15,smiley_pos,smiley_neg]
+    smiley_pos = 'semeval/smiley_tweets_{}.gz'.format(input_fname)
+    #smiley_neg = 'semeval/smiley_tweets_{}_neg.gz'.format(input_fname)
+    files = [train,test,dev,test15,smiley_pos]
     sentences = MySentences(files=files)
-    model = models.Word2Vec(sentences, size=52, window=5, min_count=5, workers=8,sg=1,sample=1e-5,hs=1)
+    model = models.Word2Vec(sentences, size=100, window=5, min_count=10, workers=7,sg=1,sample=1e-5,hs=1)
     model.save_word2vec_format('embeddings/smiley_tweets_embedding_{}'.format(input_fname),binary=False)
 
 

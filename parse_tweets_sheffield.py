@@ -2,7 +2,8 @@ import numpy as np
 from nltk.tokenize import TweetTokenizer
 import gzip
 import re
-from utils import load_glove_vec
+import operator
+
 
 def preprocess_tweet(tweet):
     tweet = tweet.lower()
@@ -20,35 +21,34 @@ emo_dict = {}
 
 def read_emo(path):
     with open(path) as f:
+        counter = 0
         for line in f:
             splits = line.split(" ")
-            emo_dict[splits[0].decode('unicode-escape').encode('latin-1').decode('utf-8')] = float(splits[1])
+            emo_dict[splits[0].decode('unicode-escape').encode('latin-1').decode('utf-8')] = float(splits[4])
+            counter += 1
     print emo_dict
+    print max(emo_dict.iteritems(), key=operator.itemgetter(1))[0]
 
 
-def convertSentiment(tweet):
-    tweet = tweet.decode('utf-8')
-    n_pos = 0
-    n_neg = 0
+def convert_sentiment(tweet,trim=True):
+    tweet = tweet.decode('utf-8','ignore')
+    emos = {}
     for emo,score in emo_dict.iteritems():
-        if emo in tweet:
-            if score == 1:
-                n_pos += 1
-            elif score == -1:
-                n_neg += 1
-            tweet = tweet.replace(emo,"")
-
-    if n_pos > 0 and n_neg > 0:
-        sentiment = 0
-    elif n_pos > 0:
-        sentiment = 1
-    elif n_neg > 0:
-        sentiment = -1
+        emo_count = tweet.count(emo)
+        if emo_count > 0:
+            emos[emo] = emo_count
+            if trim:
+                tweet = tweet.replace(emo,"")
+    if emos:
+        max_emo = max(emos.iteritems(), key=operator.itemgetter(1))[0]
+        sentiment = emo_dict[max_emo]
     else:
-        sentiment = 0
-    return tweet, sentiment
+        sentiment = -np.inf
+
+    return tweet.encode('utf-8'), sentiment
 
 UNKNOWN_WORD_IDX = 0
+
 
 def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=140):
   data_idx = []
@@ -68,30 +68,40 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=140):
   return data_idx
 
 
-def store_file(f_in,f_out,alphabet,dummy_word_idx):
+def store_file(f_in,f_out,alphabet,dummy_word_idx,sentiment_fname=None):
     tknzr = TweetTokenizer(reduce_len=True)
     counter = 0
     output = open(f_out,'wb')
+    if sentiment_fname:
+        print 'Create sentiments',sentiment_fname
+        output_sentiment = open(sentiment_fname,'wb')
     batch_size = 600000
     tweet_batch = []
+    sentiment_batch=[]
     read_emo('emoscores')
     with gzip.open(f_in,'r') as f:
         for tweet in f:
-            tweet, _ = convertSentiment(tweet)
-            tweet = tweet.encode('utf-8')
+            tweet, sentiment = convert_sentiment(tweet)
+            if sentiment_fname and sentiment == -np.inf:
+                continue
             tweet = preprocess_tweet(tweet)
             tweet = tknzr.tokenize(tweet.decode('utf-8'))
             tweet_batch.append(tweet)
+            sentiment_batch.append(sentiment)
             counter += 1
             if counter%batch_size == 0:
                 tweet_idx = convert2indices(tweet_batch,alphabet,dummy_word_idx)
                 np.save(output,tweet_idx)
+                if sentiment_fname:
+                    np.save(output_sentiment,sentiment_batch)
                 print 'Saved tweets:',tweet_idx.shape
                 tweet_batch = []
+                sentiment_batch=[]
             if (counter%100000) == 0:
                 print "Elements processed:",counter
     tweet_idx = convert2indices(tweet_batch,alphabet,dummy_word_idx)
     np.save(output,tweet_idx)
+    np.save(output_sentiment,sentiment_batch)
     print 'Saved tweets:',tweet_idx.shape
     return counter
 
@@ -103,7 +113,7 @@ def load_data(fname):
     counter = 0
     with gzip.open(fname,'r') as f:
         for tweet in f:
-            tweet,sentiment = convertSentiment(tweet)
+            tweet,sentiment = convert_sentiment(tweet)
             if sentiment != 0:
                 tweets.append(preprocess_tweet(tknzr.tokenize(tweet)))
                 sentiments.append(sentiment)

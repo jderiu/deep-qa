@@ -1,6 +1,6 @@
 import sys
 from nltk.tokenize import TweetTokenizer
-from parse_tweets_sheffield import preprocess_tweet,convertSentiment
+from parse_tweets_sheffield import preprocess_tweet,convert_sentiment
 from utils import load_glove_vec
 import gzip
 import cPickle
@@ -51,16 +51,17 @@ class Alphabet(dict):
 
 
 def usage():
-    print 'python create_alphabet.py -i <small,30M> -e <embedding:glove or custom>'
+    print 'python create_alphabet.py -i <small,30M> -e <embedding:glove or custom> -t <emb type:30M small,200M>'
 
 
 def main():
     HOME_DIR = "semeval_parsed"
     input_fname = 'small'
     embedding = 'glove'
+    type = 'small'
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:t:", ["help", "input=","embedding=",'type='])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -77,10 +78,13 @@ def main():
             sys.exit()
         elif o in ("-i", "--input"):
             input_fname = a
+        elif o in ('-t','type='):
+            type = a
         else:
             assert False, "unhandled option"
 
     outdir = HOME_DIR + '_' + input_fname
+
 
     print embedding
     print input_fname
@@ -89,8 +93,8 @@ def main():
     test = "semeval/task-B-test2014-twitter.tsv"
     dev = "semeval/twitter-test-gold-B.downloaded.tsv"
     test15 = "semeval/task-B-test2015-twitter.tsv"
-    smiley_pos = 'semeval/smiley_tweets_{}_pos.gz'.format(input_fname)
-    smiley_neg = 'semeval/smiley_tweets_{}_neg.gz'.format(input_fname)
+    smiley_pos = 'semeval/smiley_tweets_{}.gz'.format(input_fname)
+    #smiley_neg = 'semeval/smiley_tweets_{}_neg.gz'.format(input_fname)
 
     alphabet = Alphabet(start_feature_id=0)
     alphabet.add('UNKNOWN_WORD_IDX')
@@ -98,14 +102,14 @@ def main():
     tknzr = TweetTokenizer(reduce_len=True)
 
     fnames = [test,train,dev,test15]
-    fnames_gz = [smiley_pos,smiley_neg]
+    fnames_gz = [smiley_pos]
 
     counter = 0
 
     for fname in fnames:
         with open(fname,'r ') as f:
             for tweet in f:
-                tweet,_ = convertSentiment(tweet)
+                tweet,_ = convert_sentiment(tweet)
                 tweet = tweet.encode('utf-8')
                 tweet = tknzr.tokenize(preprocess_tweet(tweet).decode('utf-8'))
                 for token in tweet:
@@ -115,19 +119,19 @@ def main():
     for fname in fnames_gz:
         with gzip.open(fname,'r') as f:
             for tweet in f:
-                tweet,_ = convertSentiment(tweet)
+                tweet,_ = convert_sentiment(tweet)
                 tweet = tweet.encode('utf-8')
                 tweet = tknzr.tokenize(preprocess_tweet(tweet).decode('utf-8'))
                 for token in tweet:
                     alphabet.add(token)
                 counter += 1
-                if (counter % 100000) == 0:
+                if (counter % 1000000) == 0:
                     print 'Precessed Tweets:',counter
 
         print len(alphabet)
 
     print 'Alphabet before purge:',len(alphabet)
-    alphabet.purge_dict(input_fname=input_fname,min_freq=5,emb=embedding)
+    alphabet.purge_dict(input_fname=type,min_freq=5,emb=embedding)
     print 'Alphabet after purge:',len(alphabet)
     cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab_{}.pickle'.format(embedding)), 'w'))
 

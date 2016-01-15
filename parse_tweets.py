@@ -57,9 +57,10 @@ def main():
     HOME_DIR = "semeval_parsed"
     input_fname = 'small'
     vocab = 'glove'
+    balanced = False
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:b", ["help", "input=","embedding=","balanced="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -76,6 +77,8 @@ def main():
             sys.exit()
         elif o in ("-i", "--input"):
             input_fname = a
+        elif o in ("-b", "--balanced"):
+            balanced = True
         else:
             assert False, "unhandled option"
 
@@ -90,6 +93,10 @@ def main():
     test15 = "semeval/task-B-test2015-twitter.tsv"
     smiley_pos = 'semeval/smiley_tweets_{}_pos.gz'.format(input_fname)
     smiley_neg = 'semeval/smiley_tweets_{}_neg.gz'.format(input_fname)
+    if balanced:
+        smiley_tweets = 'semeval/smiley_tweets_{}_balanced.gz'.format(input_fname)
+    else:
+        smiley_tweets = 'semeval/smiley_tweets_{}.gz'.format(input_fname)
 
     fname_vocab = os.path.join(outdir, 'vocab_{}.pickle'.format(vocab))
     alphabet = cPickle.load(open(fname_vocab))
@@ -105,16 +112,20 @@ def main():
     print "Number of tweets in all_merged",len(tweets)
 
     print "Loading Smiley Data"
-	#save sheffield tweets
-    basename, _ = os.path.splitext(os.path.basename('smiley_tweets_pos_{}'.format(vocab)))
-    nTweets = pts.store_file(smiley_pos,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)
+    #save sheffield tweets
+    #basename, _ = os.path.splitext(os.path.basename('smiley_tweets_pos_{}'.format(vocab)))
+    #nTweets = pts.store_file(smiley_pos,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx,sentiment_fname=os.path.join(outdir, '{}.sentiments.npy'.format(basename)))
+    #print "Number of tweets:", nTweets
+
+    #basename, _ = os.path.splitext(os.path.basename('smiley_tweets_neg_{}'.format(vocab)))
+    #nTweets = pts.store_file(smiley_neg,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx,sentiment_fname=os.path.join(outdir, '{}.sentiments.npy'.format(basename)))
+    #print "Number of tweets:", nTweets
+
+    basename, _ = os.path.splitext(os.path.basename('smiley_tweets_{}'.format(vocab)))
+    nTweets = pts.store_file(smiley_tweets,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx,sentiment_fname=os.path.join(outdir,'{}.sentiments.npy'.format(basename)))
     print "Number of tweets:", nTweets
 
-    basename, _ = os.path.splitext(os.path.basename('smiley_tweets_neg_{}'.format(vocab)))
-    nTweets = pts.store_file(smiley_neg,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx)
-    print "Number of tweets:", nTweets
-
-	#save semeval tweets all
+    #save semeval tweets all
     tweet_idx = pts.convert2indices(tweets, alphabet, dummy_word_idx)
     print "Number of tweets:", len(tweets)
     basename, _ = os.path.splitext(os.path.basename("all_merged_{}".format(vocab)))
@@ -122,7 +133,7 @@ def main():
     np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
     np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
 
-	#save semeval tweets seperate
+    #save semeval tweets seperate
     files = [train,dev,test,test15]
     for fname in files:
         tid, tweets, sentiments = load_data(fname,alphabet)

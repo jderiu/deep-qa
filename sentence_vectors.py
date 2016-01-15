@@ -28,118 +28,84 @@ def load_smiley_tweets(fname_ps,max_it=numpy.inf):
         it += 1
     return tweet_set
 
-def semeval_f1(y_truth,y_pred):
-    negPrecUp = 0
-    negPrecDown = 0
-    negRecallUp = 0
-    negRecallDown = 0
 
-    posPrecUp = 0
-    posPrecDown = 0
-    posRecallUp = 0
-    posRecallDown = 0
+def semeval_f1(y_truth,y_pred):
+    neg_prec_up = 0
+    neg_prec_down= 0
+    neg_recall_up = 0
+    neg_recall_down = 0
+
+    pos_prec_up = 0
+    pos_prec_down = 0
+    pos_recall_up = 0
+    pos_recall_down = 0
 
     for (target,prediction) in zip(y_truth,y_pred):
         if target == 0 and prediction == 0:
-            negPrecUp += 1
-            negRecallUp += 1
+            neg_prec_up += 1
+            neg_recall_up += 1
         if prediction == 0:
-            negPrecDown += 1
+            neg_prec_down += 1
         if target == 0:
-            negRecallDown += 1
+            neg_recall_down += 1
 
         if prediction == 2 and target == 2:
-            posPrecUp += 1
-            posRecallUp += 1
+            pos_prec_up += 1
+            pos_recall_up += 1
         if prediction == 2:
-            posPrecDown += 1
+            pos_prec_down += 1
         if target == 2:
-            posRecallDown += 1
+            pos_recall_down += 1
 
-    if negPrecDown == 0:
-        negPrecision = 1.0
+    if neg_prec_down == 0:
+        neg_precision = 1.0
     else:
-        negPrecision = 1.0*negPrecUp/negPrecDown
+        neg_precision = 1.0*neg_prec_up/neg_prec_down
 
-    if posPrecDown == 0:
-        posPrecision = 1.0
+    if pos_prec_down == 0:
+        pos_precision = 1.0
     else:
-        posPrecision = 1.0*posPrecUp/posPrecDown
+        pos_precision = 1.0*pos_prec_up/pos_prec_down
 
-    if negRecallDown == 0:
-        negRecall = 1.0
+    if neg_recall_down == 0:
+        neg_recall = 1.0
     else:
-        negRecall = 1.0*negRecallUp/negRecallDown
+        neg_recall = 1.0*neg_recall_up/neg_recall_down
 
-    if posRecallDown == 0:
-        posRecall = 1.0
+    if pos_recall_down == 0:
+        pos_recall = 1.0
     else:
-        posRecall = 1.0*posRecallUp/posRecallDown
+        pos_recall = 1.0*pos_recall_up/pos_recall_down
 
-    if (negRecall + negPrecision) == 0:
-        negF1 = 0.0
+    if (neg_recall + neg_precision) == 0:
+        neg_F1 = 0.0
     else:
-        negF1 = 2*(negPrecision*negRecall)/(negPrecision + negRecall)
+        neg_F1 = 2*(neg_precision*neg_recall)/(neg_precision + neg_recall)
 
-    if (posRecall + posPrecision) == 0:
-        posF1 = 0.0
+    if (pos_recall + pos_precision) == 0:
+        pos_F1 = 0.0
     else:
-        posF1 = 2*(posPrecision*posRecall)/(posPrecision + posRecall)
+        pos_F1 = 2*(pos_precision*pos_recall)/(pos_precision + pos_recall)
 
-    f1 = (negF1 + posF1)/2
+    f1 = (neg_F1 + pos_F1)/2
     return f1
 
-def training(nnet,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir,parameter_map,n_outs=2,early_stop=5,check_freq=300,sup_type='distant'):
+
+def training(nnet,train_set_iterator,train_fn):
     params = nnet.params
-    ZEROUT_DUMMY_WORD = True
 
-    if ZEROUT_DUMMY_WORD:
-        W_emb_list = [w for w in params if w.name == 'W_emb']
-        zerout_dummy_word = theano.function([], updates=[(W, T.set_subtensor(W[-1:], 0.)) for W in W_emb_list])
+    W_emb_list = [w for w in params if w.name == 'W_emb']
+    zerout_dummy_word = theano.function([], updates=[(W, T.set_subtensor(W[-1:], 0.)) for W in W_emb_list])
 
-    best_dev_acc = -numpy.inf
-    epoch = 0
-    timer_train = time.time()
-    no_best_dev_update = 0
     num_train_batches = len(train_set_iterator)
-    while epoch < n_epochs:
-        timer = time.time()
-        for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator,ascii=True), 1):
-            train_fn(tweet, y_label)
+    for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator,ascii=True), 1):
+        train_fn(tweet, y_label)
 
-            # Make sure the null word in the word embeddings always remains zero
-            if ZEROUT_DUMMY_WORD:
-                zerout_dummy_word()
-
-            if i % check_freq == 0 or i == num_train_batches:
-                y_pred_dev = predict_prob_batch(dev_set_iterator)
-                if n_outs == 2:
-                    dev_acc = metrics.roc_auc_score(y_dev_set, y_pred_dev) * 100
-                else:
-                    dev_acc = semeval_f1(y_dev_set,y_pred_dev)*100
-                    dev_acc_c = metrics.accuracy_score(y_dev_set,y_pred_dev)*100
-                if dev_acc > best_dev_acc:
-                    print('epoch: {} batch: {} dev auc: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, i, dev_acc,best_dev_acc))
-                    best_dev_acc = dev_acc
-                    best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
-                    no_best_dev_update = 0
-                    cPickle.dump(parameter_map, open(data_dir+'/parameters_{}.p'.format(sup_type), 'wb'))
-
-        if no_best_dev_update >= early_stop:
-            print "Quitting after of no update of the best score on dev set", no_best_dev_update
-            break
-
-        print('epoch {} took {:.4f} seconds'.format(epoch, time.time() - timer))
-        epoch += 1
-        no_best_dev_update += 1
-
-    print('Training took: {:.4f} seconds'.format(time.time() - timer_train))
-    for i, param in enumerate(best_params):
-        params[i].set_value(param, borrow=True)
-    params
+        # Make sure the null word in the word embeddings always remains zero
+        zerout_dummy_word()
 
 
-def get_next_chunck(pos_file,neg_file,n_chunchks=1):
+def get_next_chunk_pos_neg(pos_file, neg_file, n_chunks=1):
     tweet_set = None
     sentiment_set = None
     it = 0
@@ -148,7 +114,6 @@ def get_next_chunck(pos_file,neg_file,n_chunchks=1):
             batch_pos = numpy.load(pos_file)
             batch_neg = numpy.load(neg_file)
             batch = numpy.concatenate((batch_pos,batch_neg),axis=0)
-            print batch.shape
 
             pos_len = batch_pos.shape[0]
             neg_len = batch_neg.shape[0]
@@ -156,19 +121,39 @@ def get_next_chunck(pos_file,neg_file,n_chunchks=1):
             if tweet_set == None:
                 tweet_set = batch
                 sentiment_set = sentiment
-                print tweet_set.shape
             else:
-                print tweet_set.shape
                 tweet_set = numpy.concatenate((tweet_set,batch),axis=0)
                 sentiment_set = numpy.concatenate((sentiment_set,sentiment),axis=0)
         except:
             break
         it += 1
-        print it
-        if not (it < n_chunchks):
+        if not (it < n_chunks):
             break
 
-    return tweet_set,sentiment_set
+    return tweet_set,sentiment_set,it
+
+
+def get_next_chunk(fname_tweet,fname_sentiment,n_chunks=1):
+    tweet_set = None
+    sentiment_set = None
+    it = 0
+    while True:
+        try:
+            batch_tweet = numpy.load(fname_tweet)
+            batch_sentiment = numpy.load(fname_sentiment)
+            if tweet_set == None:
+                tweet_set = batch_tweet
+                sentiment_set = batch_sentiment
+            else:
+                tweet_set = numpy.concatenate((tweet_set,batch_tweet),axis=0)
+                sentiment_set = numpy.concatenate((sentiment_set,batch_sentiment),axis=0)
+        except:
+            break
+        it += 1
+        if not (it < n_chunks):
+            break
+
+    return tweet_set,sentiment_set,it
 
 
 def usage():
@@ -179,9 +164,10 @@ def main():
     timestamp = str(long(time.time()*1000))
     input_fname = 'small'
     embedding = 'glove'
+    etype = 'small'
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:e:", ["help", "input=","embedding="])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:t:", ["help", "input=","embedding=","type="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -198,15 +184,13 @@ def main():
             sys.exit()
         elif o in ("-i", "--input"):
             input_fname = a
+        elif o in ("-t", "--type"):
+            etype = a
         else:
             assert False, "unhandled option"
 
-
-
     data_dir = HOME_DIR + '_' + input_fname
 
-    fname_ps = open(os.path.join(data_dir, 'smiley_tweets_pos_{}.tweets.npy'.format(embedding)),'rb')
-    fname_neg = open(os.path.join(data_dir, 'smiley_tweets_neg_{}.tweets.npy'.format(embedding)),'rb')
     numpy_rng = numpy.random.RandomState(123)
 
     q_max_sent_size = 140
@@ -215,7 +199,7 @@ def main():
     if embedding == 'glove':
         embedding_fname = 'emb_glove.twitter.27B.50d.txt.npy'
     else:
-        embedding_fname = 'emb_smiley_tweets_embedding_{}.npy'.format(input_fname)
+        embedding_fname = 'emb_smiley_tweets_embedding_{}.npy'.format(etype)
 
     fname_wordembeddings = os.path.join(data_dir, embedding_fname)
 
@@ -229,14 +213,10 @@ def main():
 
     #######
     n_outs = 2
-    n_epochs = 1
-    batch_size = 500
-    learning_rate = 0.1
+    batch_size = 1000
     max_norm = 0
 
     print 'batch_size', batch_size
-    print 'n_epochs', n_epochs
-    print 'learning_rate', learning_rate
     print 'max_norm', max_norm
 
     ## 1st conv layer.
@@ -342,15 +322,10 @@ def main():
 
     nnet_tweets.set_input(tweets)
     print nnet_tweets
-    ######
-
-
-
 
     ################
     # TRAIN  MODEL #
     ###############
-    ZEROUT_DUMMY_WORD = True
 
     batch_tweets= T.imatrix('batch_x_q')
     batch_y = T.lvector('batch_y')
@@ -403,46 +378,86 @@ def main():
         preds = numpy.hstack([pred_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
-    batch_number = 1
-    while True:
-        smiley_set_tweets,smiley_set_seniments = get_next_chunck(fname_ps,fname_neg,n_chunchks=4)
-        if smiley_set_tweets == None:
+    W_emb_list = [w for w in params if w.name == 'W_emb']
+    zerout_dummy_word = theano.function([], updates=[(W, T.set_subtensor(W[-1:], 0.)) for W in W_emb_list])
+
+    epoch = 0
+    n_epochs = 1
+    early_stop = 3
+    best_dev_acc = -numpy.inf
+    no_best_dev_update = 0
+    timer_train = time.time()
+    done = False
+    best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
+    while epoch < n_epochs and not done:
+        max_chunks = numpy.inf
+        curr_chunks = 0
+        timer = time.time()
+        #fname_ps = open(os.path.join(data_dir, 'smiley_tweets_pos_{}.tweets.npy'.format(embedding)),'rb')
+        #fname_neg = open(os.path.join(data_dir, 'smiley_tweets_neg_{}.tweets.npy'.format(embedding)),'rb')
+        fname_tweet = open(os.path.join(data_dir, 'smiley_tweets_{}.tweets.npy'.format(embedding)),'rb')
+        fname_sentiments = open(os.path.join(data_dir, 'smiley_tweets_{}.sentiments.npy'.format(embedding)),'rb')
+        while curr_chunks < max_chunks:
+            smiley_set_tweets,smiley_set_sentiments,chunks = get_next_chunk(fname_tweet, fname_sentiments, n_chunks=2)
+            print smiley_set_sentiments
+            curr_chunks += chunks
+            if smiley_set_tweets == None:
+                break
+
+            print 'Chunk number:',curr_chunks
+            smiley_set_sentiments = smiley_set_sentiments.astype(int)
+
+            smiley_set = zip(smiley_set_tweets,smiley_set_sentiments)
+            numpy_rng.shuffle(smiley_set)
+            smiley_set_tweets[:],smiley_set_sentiments[:] = zip(*smiley_set)
+
+            train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.98)]
+            dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.98):int(len(smiley_set_tweets) * 1)]
+            y_train_set = smiley_set_sentiments[0 : int(len(smiley_set_sentiments) * 0.98)]
+            y_dev_set = smiley_set_sentiments[int(len(smiley_set_sentiments) * 0.98):int(len(smiley_set_sentiments) * 1)]
+
+            print "Length trains_set:", len(train_set)
+            print "Length dev_set:", len(dev_set)
+            print "Length y_trains_set:", len(y_train_set)
+            print "Length y_dev_set:", len(y_dev_set)
+
+            train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(numpy_rng,[train_set, y_train_set],batch_size=batch_size,randomize=True)
+
+            dev_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(numpy_rng,[dev_set],batch_size=batch_size,randomize=False)
+
+            num_train_batches = len(train_set_iterator)
+            for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator,ascii=True), 1):
+                train_fn(tweet, y_label)
+
+            # Make sure the null word in the word embeddings always remains zero
+            zerout_dummy_word()
+
+            y_pred_dev = predict_batch(dev_set_iterator)
+            dev_acc = metrics.accuracy_score(y_dev_set, y_pred_dev) * 100
+
+            if dev_acc > best_dev_acc:
+                    print('epoch: {} chunk: {} best_chunk_auc: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, curr_chunks, dev_acc,best_dev_acc))
+                    best_dev_acc = dev_acc
+                    best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
+                    no_best_dev_update = 0
+            else:
+                print('epoch: {} chunk: {} best_chunk_auc: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, curr_chunks, dev_acc,best_dev_acc))
+
+        cPickle.dump(parameter_map, open(data_dir+'/parameters_{}.p'.format('distant'), 'wb'))
+        print('epoch {} took {:.4f} seconds'.format(epoch, time.time() - timer))
+
+        if no_best_dev_update >= early_stop:
+            print "Quitting after of no update of the best score on dev set", no_best_dev_update
             break
-        print 'Chunk number:',batch_number
-        smiley_set_seniments=smiley_set_seniments.astype(int)
+        no_best_dev_update += 1
+        epoch += 1
+        fname_tweet.close()
+        fname_sentiments.close()
 
-        smiley_set = zip(smiley_set_tweets,smiley_set_seniments)
-        numpy_rng.shuffle(smiley_set)
-        smiley_set_tweets[:],smiley_set_seniments[:] = zip(*smiley_set)
-
-        train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.98)]
-        dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.98):int(len(smiley_set_tweets) * 1)]
-        y_train_set = smiley_set_seniments[0 : int(len(smiley_set_seniments) * 0.98)]
-        y_dev_set = smiley_set_seniments[int(len(smiley_set_seniments) * 0.98):int(len(smiley_set_seniments) * 1)]
-
-        print "Length trains_set:", len(train_set)
-        print "Length dev_set:", len(dev_set)
-        print "Length y_trains_set:", len(y_train_set)
-        print "Length y_dev_set:", len(y_dev_set)
-
-        train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
-        numpy_rng,
-        [train_set, y_train_set],
-        batch_size=batch_size,
-        randomize=True
-        )
-
-        dev_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
-            numpy_rng,
-            [dev_set],
-            batch_size=batch_size,
-            randomize=False
-        )
-
-        check_freq = train_set_iterator.n_batches/10
-        training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_prob_batch,y_dev_set,data_dir=data_dir,parameter_map=parameter_map,early_stop=3,check_freq=check_freq,sup_type='distant')
-
-        batch_number += 1
+    print('Training took: {:.4f} seconds'.format(time.time() - timer_train))
+    for i, param in enumerate(best_params):
+        #params[i].set_value(param, borrow=True)
+        pass
 
     #######################
     # Supervised Learining#
@@ -481,9 +496,8 @@ def main():
 
 
     nnet_tweets.set_input(tweets)
-    print nnet_tweets
-
     params = nnet_tweets.params
+    print nnet_tweets
     cost = nnet_tweets.layers[-1].training_cost(y)
 
     updates = sgd_trainer.get_adadelta_updates(
@@ -502,10 +516,41 @@ def main():
         givens=givens_train
     )
 
+    epoch = 0
     n_epochs = 100
-
+    early_stop = 10
     check_freq = train_set_iterator.n_batches/10
-    training(nnet_tweets,train_set_iterator,dev_set_iterator,train_fn,n_epochs,predict_batch,dev_sentiments,data_dir=data_dir,parameter_map=parameter_map,n_outs=3,early_stop=10,check_freq=check_freq,sup_type='supervised')
+    timer_train = time.time()
+    no_best_dev_update = 0
+    best_dev_acc = -numpy.inf
+    num_train_batches = len(train_set_iterator)
+    while epoch < n_epochs:
+        timer = time.time()
+        for i, (tweet, y_label) in enumerate(tqdm(train_set_iterator,ascii=True), 1):
+                train_fn(tweet, y_label)
+
+                if i % check_freq == 0 or i == num_train_batches:
+                    y_pred_dev = predict_batch(dev_set_iterator)
+                    dev_acc = semeval_f1(dev_sentiments,y_pred_dev)*100
+                    if dev_acc > best_dev_acc:
+                        print('epoch: {} chunk: {} best_chunk_f1: {:.4f}; best_dev_f1: {:.4f}'.format(epoch, i, dev_acc,best_dev_acc))
+                        best_dev_acc = dev_acc
+                        best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
+                        no_best_dev_update = 0
+                        cPickle.dump(parameter_map, open(data_dir+'/parameters_{}.p'.format('supervised'), 'wb'))
+
+
+        zerout_dummy_word()
+        print('epoch {} took {:.4f} seconds'.format(epoch, time.time() - timer))
+        epoch += 1
+        no_best_dev_update += 1
+        if no_best_dev_update >= early_stop:
+            print "Quitting after of no update of the best score on dev set", no_best_dev_update
+            break
+
+    print('Training took: {:.4f} seconds'.format(time.time() - timer_train))
+    for i, param in enumerate(best_params):
+        params[i].set_value(param, borrow=True)
 
 
     #######################

@@ -60,9 +60,6 @@ def main():
     for word,idx in alphabet.iteritems():
         word_vec = W[idx]
         word = word.encode('utf-8')
-        if 5680 < counter and counter < 5685:
-            print word
-            print unicode(word)
         try:
             if ' ' not in word:
                 fname.write(word)
