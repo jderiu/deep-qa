@@ -23,7 +23,7 @@ def main():
               ]
 
   for data_dir in data_dirs:
-    fname_vocab = os.path.join(data_dir, 'vocab.pickle')
+    fname_vocab = os.path.join(data_dir, 'vocab_glove.pickle')
     alphabet = cPickle.load(open(fname_vocab))
     words = alphabet.keys()
     print "Vocab size", len(alphabet)

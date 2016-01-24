@@ -17,9 +17,10 @@ def main():
     input_fname = 'small'
     embedding = 'glove'
     type = 'small'
+    ndim = 52
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:e:t:", ["help", "input=","embedding=","type="])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:e:t:d:", ["help", "input=","embedding=","type=","dim="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -38,19 +39,21 @@ def main():
             input_fname = a
         elif o in ("-t", "--type"):
             type = a
+        elif o in ("-d", "--dim"):
+            ndim = int(a)
         else:
             assert False, "unhandled option"
 
     data_dir = HOME_DIR + '_' + input_fname
 
-    fname_vocab = os.path.join(data_dir, 'vocab_{}.pickle'.format(embedding))
+    fname_vocab = os.path.join(data_dir, 'vocab_{}_{}.pickle'.format(embedding,str(ndim)))
     alphabet = cPickle.load(open(fname_vocab))
     words = alphabet.keys()
     print "Vocab size", len(alphabet)
     if embedding == 'glove':
         fname,delimiter,ndim = ('embeddings/glove.twitter.27B.50d.txt',' ',50)
     elif embedding == 'custom':
-        fname,delimiter,ndim = ('embeddings/smiley_tweets_embedding_{}'.format(type),' ',52)
+        fname,delimiter,ndim = ('embeddings/smiley_tweets_embedding_{}_{}'.format(type,str(ndim)),' ',ndim)
     else:
         sys.exit()
 

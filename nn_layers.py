@@ -161,7 +161,7 @@ class LookupTableFast(Layer):
     def output_func(self, input):
       out = self.W[input.flatten()].reshape((input.shape[0], 1, input.shape[1], self.W.shape[1]))
       if self.pad:
-        pad_matrix = T.zeros((out.shape[0], out.shape[1], self.pad, out.shape[3]))
+        pad_matrix = T.zeros((out.shape[0], out.shape[1], self.pad, out.shape[3]),dtype='float32')
         out = T.concatenate([pad_matrix, out, pad_matrix], axis=2)
       return out
 
@@ -189,7 +189,6 @@ class LookupTableFastStatic(Layer):
       super(LookupTableFastStatic, self).__init__()
       self.pad = pad
       self.W = theano.shared(value=W, name='W_emb', borrow=True)
-      self.weights = [self.W]
 
     def output_func(self, input):
       out = self.W[input.flatten()].reshape((input.shape[0], 1, input.shape[1], self.W.shape[1]))
@@ -379,12 +378,14 @@ class KMaxPoolLayer(Layer):
 
 class KMaxPoolLayerNative(Layer):
   """Folds across last axis (ndim)."""
-  def __init__(self, shape):
+  def __init__(self, shape,st=None,ignore_border=True):
     super(KMaxPoolLayerNative, self).__init__()
     self.maxpool_shape = (shape,1)
+    self.st = st
+    self.ig_bor = ignore_border
 
   def output_func(self, input):
-    return downsample.max_pool_2d(input, ds=self.maxpool_shape, ignore_border=False)
+    return downsample.max_pool_2d(input, ds=self.maxpool_shape, ignore_border=self.ig_bor,st=self.st)
 
   def __repr__(self):
     return "{}: k_max={}".format(self.__class__.__name__, self.maxpool_shape)

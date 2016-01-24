@@ -53,6 +53,7 @@ UNKNOWN_WORD_IDX = 0
 def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=140):
   data_idx = []
   max_len = 0
+  unknown_words = 0
   for sentence in data:
     ex = np.ones(max_sent_length) * dummy_word_idx
     max_len = max(len(sentence),max_len)
@@ -62,9 +63,12 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=140):
     for i, token in enumerate(sentence):
       idx = alphabet.get(token, UNKNOWN_WORD_IDX)
       ex[i] = idx
+      if idx == UNKNOWN_WORD_IDX:
+          unknown_words += 1
     data_idx.append(ex)
   data_idx = np.array(data_idx).astype('int32')
   print "Max length in this batch:",max_len
+  print "Number of unknown words:",unknown_words
   return data_idx
 
 
@@ -97,7 +101,7 @@ def store_file(f_in,f_out,alphabet,dummy_word_idx,sentiment_fname=None):
                 print 'Saved tweets:',tweet_idx.shape
                 tweet_batch = []
                 sentiment_batch=[]
-            if (counter%100000) == 0:
+            if (counter%1000000) == 0:
                 print "Elements processed:",counter
     tweet_idx = convert2indices(tweet_batch,alphabet,dummy_word_idx)
     np.save(output,tweet_idx)

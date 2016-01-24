@@ -12,6 +12,7 @@ from sklearn import metrics
 import getopt
 import theano.sandbox.cuda.basic_ops
 import sys
+import math
 
 CL_DIR = "/cluster/work/scr2/jderiu/semeval"
 HOME_DIR = "semeval_parsed"
@@ -203,8 +204,12 @@ def main():
 
     fname_wordembeddings = os.path.join(data_dir, embedding_fname)
 
+    #parameter_map = cPickle.load(open(data_dir+'/parameters_distant_f166.p', 'rb'))
+
+
     print "Loading word embeddings from", fname_wordembeddings
     vocab_emb = numpy.load(fname_wordembeddings)
+    #vocab_emb = parameter_map['LookupTableFastStaticW'].get_value()
     print type(vocab_emb[0][0])
     print "Word embedding matrix size:", vocab_emb.shape
 
@@ -223,131 +228,151 @@ def main():
     ndim = vocab_emb.shape[1]
 
     ### Nonlinearity type
-    activation = T.tanh
+    def relu(x):
+        return x * (x > 0)
+
+    activation = relu
 
     dropout_rate = 0.5
-    nkernels = 300
+    nkernels1 = 200
+    nkernels2 = 200
     k_max = 1
+    shape1 = 4
+    st = None
     num_input_channels = 1
-    filter_widths = [5]
-    q_logistic_n_in = nkernels * k_max * len(filter_widths)
+    filter_width1 = 3
+    filter_width2 = 3
+    q_logistic_n_in = nkernels1 * k_max
+    sent_size = q_max_sent_size + 2*(filter_width1 - 1)
+    layer1_size = (sent_size - filter_width1 + 1 - shape1)//st[0] + 1
+    print layer1_size
+    #n_in = nkernels2*math.ceil((layer1_size - filter_width + 1)/shape2)
+    #n_in = nkernels2*k_max
 
     input_shape = (
         batch_size,
         num_input_channels,
-        q_max_sent_size + 2 * (max(filter_widths) - 1),
+        q_max_sent_size + 2 * (filter_width1 - 1),
         ndim
     )
-
-
 
     ##########
     # LAYERS #
     #########
 
     parameter_map = {}
-    parameter_map['nKernels'] = nkernels
+    parameter_map['nKernels1'] = nkernels1
+    parameter_map['nKernels2'] = nkernels2
     parameter_map['num_input_channels'] = num_input_channels
     parameter_map['ndim'] = ndim
     parameter_map['inputShape'] = input_shape
-    parameter_map['filterWidths'] = filter_widths
-    parameter_map['activation'] = activation
+    parameter_map['activation'] = 'relu'
     parameter_map['qLogisticIn'] = q_logistic_n_in
     parameter_map['kmax'] = k_max
+    parameter_map['st'] = st
 
-    lookup_table_words = nn_layers.LookupTableFastStatic(
+    parameter_map['filterWidth'] = filter_width1
+
+    lookup_table_words = nn_layers.LookupTableFast(
         W=vocab_emb,
-        pad=max(filter_widths)-1
+        pad=filter_width1-1
     )
 
     parameter_map['LookupTableFastStaticW'] = lookup_table_words.W
 
     conv_layers = []
-    for filter_width in filter_widths:
-        filter_shape = (
-            nkernels,
-            num_input_channels,
-            filter_width,
-            ndim
-        )
+    filter_shape = (
+        nkernels1,
+        num_input_channels,
+        filter_width1,
+        ndim
+    )
 
-        parameter_map['FilterShape' + str(filter_width)] = filter_shape
+    parameter_map['FilterShape' + str(filter_width1)] = filter_shape
 
-        conv = nn_layers.Conv2dLayer(
-            rng=numpy_rng,
-            filter_shape=filter_shape,
-            input_shape=input_shape
-        )
+    conv = nn_layers.Conv2dLayer(
+        rng=numpy_rng,
+        filter_shape=filter_shape,
+        input_shape=input_shape
+    )
 
-        parameter_map['Conv2dLayerW' + str(filter_width)] = conv.W
+    parameter_map['Conv2dLayerW' + str(filter_width1)] = conv.W
 
-        non_linearity = nn_layers.NonLinearityLayer(
-            b_size=filter_shape[0],
-            activation=activation
-        )
+    non_linearity = nn_layers.NonLinearityLayer(
+        b_size=filter_shape[0],
+        activation=activation
+    )
 
-        parameter_map['NonLinearityLayerB' + str(filter_width)] = non_linearity.b
+    parameter_map['NonLinearityLayerB' + str(filter_width1)] = non_linearity.b
 
-        shape = 2
-        pooling = nn_layers.KMaxPoolLayerNative(shape=shape)
+    pooling = nn_layers.KMaxPoolLayerNative(shape=shape1,ignore_border=True,st=st)
 
-        parameter_map['PoolingShape'] = shape
+    parameter_map['PoolingShape1'] = shape1
+    parameter_map['PoolingSt1'] = st
 
-        input_shape2 = (
-            batch_size,
-            nkernels,
-            input_shape[2]//2 - 2,
-            1
-        )
+    input_shape2 = (
+        batch_size,
+        nkernels1,
+        (input_shape[2] - filter_width1 + 1 - shape1)//st[0] + 1,
+        1
+    )
 
-        parameter_map['input_shape2'+ str(filter_width)] = input_shape2
+    parameter_map['input_shape2'+ str(filter_width1)] = input_shape2
 
-        filter_shape2 = (
-            nkernels,
-            nkernels,
-            filter_width//2,
-            1
-        )
+    filter_shape2 = (
+        nkernels2,
+        nkernels1,
+        filter_width2,
+        1
+    )
 
-        parameter_map['filter_shape2' + str(filter_width)] = filter_shape2
+    parameter_map['FilterShape2' + str(filter_width1)] = filter_shape2
 
-        con2 = nn_layers.Conv2dLayer(
-            rng=numpy_rng,
-            input_shape=input_shape2,
-            filter_shape=filter_shape2
-        )
+    con2 = nn_layers.Conv2dLayer(
+        rng=numpy_rng,
+        input_shape=input_shape2,
+        filter_shape=filter_shape2
+    )
 
-        non_linearity2 = nn_layers.NonLinearityLayer(
-            b_size=filter_shape2[0],
-            activation=activation
-        )
+    parameter_map['Conv2dLayerW2' + str(filter_width1)] = con2.W
 
-        pooling2 = nn_layers.KMaxPoolLayer(k_max=k_max)
+    non_linearity2 = nn_layers.NonLinearityLayer(
+        b_size=filter_shape2[0],
+        activation=activation
+    )
 
-        conv2dNonLinearMaxPool = nn_layers.FeedForwardNet(layers=[
-            conv,
-            non_linearity,
-            pooling,
-            con2,
-            non_linearity2,
-            pooling2
-        ])
-        conv_layers.append(conv2dNonLinearMaxPool)
+    parameter_map['NonLinearityLayerB2' + str(filter_width1)] = non_linearity2.b
+
+    shape2 = input_shape2[2] - filter_width2 + 1
+    pooling2 = nn_layers.KMaxPoolLayerNative(shape=shape2,ignore_border=True)
+    n_in = nkernels2*(layer1_size - filter_width2 + 1)//shape2
+    parameter_map['n_in'] = n_in
+    parameter_map['PoolingShape2'] = shape2
+
+    conv2dNonLinearMaxPool = nn_layers.FeedForwardNet(layers=[
+        conv,
+        non_linearity,
+        pooling,
+        con2,
+        non_linearity2,
+        pooling2
+    ])
+    conv_layers.append(conv2dNonLinearMaxPool)
 
     join_layer = nn_layers.ParallelLayer(layers=conv_layers)
     flatten_layer = nn_layers.FlattenLayer()
 
     hidden_layer = nn_layers.LinearLayer(
         numpy_rng,
-        n_in=q_logistic_n_in,
-        n_out=q_logistic_n_in,
+        n_in=n_in,
+        n_out=n_in,
         activation=activation
     )
 
     parameter_map['LinearLayerW'] = hidden_layer.W
     parameter_map['LinearLayerB'] = hidden_layer.b
 
-    classifier = nn_layers.LogisticRegression(n_in=q_logistic_n_in, n_out=n_outs)
+    classifier = nn_layers.LogisticRegression(n_in=n_in, n_out=n_outs)
 
     nnet_tweets = nn_layers.FeedForwardNet(layers=[
         lookup_table_words,
@@ -419,7 +444,7 @@ def main():
     zerout_dummy_word = theano.function([], updates=[(W, T.set_subtensor(W[-1:], 0.)) for W in W_emb_list])
 
     epoch = 0
-    n_epochs = 1
+    n_epochs = 2
     early_stop = 3
     best_dev_acc = -numpy.inf
     no_best_dev_update = 0
@@ -435,7 +460,7 @@ def main():
         fname_tweet = open(os.path.join(data_dir, 'smiley_tweets_{}.tweets.npy'.format(embedding)),'rb')
         fname_sentiments = open(os.path.join(data_dir, 'smiley_tweets_{}.sentiments.npy'.format(embedding)),'rb')
         while curr_chunks < max_chunks:
-            smiley_set_tweets,smiley_set_sentiments,chunks = get_next_chunk(fname_tweet, fname_sentiments, n_chunks=2)
+            smiley_set_tweets,smiley_set_sentiments,chunks = get_next_chunk(fname_tweet, fname_sentiments, n_chunks=4)
             print smiley_set_sentiments
             curr_chunks += chunks
             if smiley_set_tweets == None:
@@ -479,6 +504,7 @@ def main():
                     no_best_dev_update = 0
             else:
                 print('epoch: {} chunk: {} best_chunk_auc: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, curr_chunks, dev_acc,best_dev_acc))
+            cPickle.dump(parameter_map, open(data_dir+'/parameters_{}.p'.format('distant'), 'wb'))
 
         cPickle.dump(parameter_map, open(data_dir+'/parameters_{}.p'.format('distant'), 'wb'))
         print('epoch {} took {:.4f} seconds'.format(epoch, time.time() - timer))
@@ -491,11 +517,16 @@ def main():
         fname_tweet.close()
         fname_sentiments.close()
 
+    cPickle.dump(parameter_map, open(data_dir+'/parameters_{}.p'.format('distant'), 'wb'))
     print('Training took: {:.4f} seconds'.format(time.time() - timer_train))
     for i, param in enumerate(best_params):
         #params[i].set_value(param, borrow=True)
         pass
 
+    only_distant = True
+
+    if only_distant:
+        return
     #######################
     # Supervised Learining#
     ######################
