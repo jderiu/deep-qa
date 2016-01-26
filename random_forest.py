@@ -1,11 +1,16 @@
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import LinearSVC
+from sklearn.ensemble import ExtraTreesClassifier
+from scipy.sparse import hstack,vstack
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.decomposition import TruncatedSVD
 import numpy
 import os
 import sys
 import math
+from sklearn.datasets import load_svmlight_file
+from sklearn.decomposition import NMF
+import  matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def semeval_f1(y_truth,y_pred):
@@ -71,14 +76,35 @@ def semeval_f1(y_truth,y_pred):
 
 
 
-def load_senvecs(fname):
-    sen_vecs = {}
-    with open(fname) as f:
-        for line in f:
-            splits = line.split(' ')
-            id = splits[0]
-            sen_vecs[id] = numpy.asarray(splits[1:],dtype='float32')
-    return sen_vecs
+def load_senvecs(sub_dirs,train_files):
+    data_dir = "models"
+
+
+    X_train = None
+    y_train = None
+    for sub_dir in sub_dirs:
+        spath = os.path.join(data_dir,sub_dir)
+        data_sub = None
+        label_sub = None
+        for file in train_files:
+            fname = os.path.join(spath,file)
+            data = load_svmlight_file(fname)
+            if data_sub == None:
+                data_sub = data[0]
+                label_sub = data[1]
+            else:
+                X = data[0]
+                y = data[1]
+
+                data_sub = vstack((data_sub,X))
+                label_sub = numpy.concatenate((label_sub,y),axis=0)
+        if  X_train == None:
+            X_train = data_sub
+            y_train = label_sub
+        else:
+            X_train = hstack((X_train,data_sub))
+
+    return X_train.todense(),y_train
 
 
 def getX(ids,sen_vecs):
@@ -93,40 +119,85 @@ def getX(ids,sen_vecs):
 
 
 def main():
-    input_fname = '200M'
-    embedding = 'custom'
-    if len(sys.argv) > 1:
-        input_fname = sys.argv[1]
 
-    HOME_DIR = "semeval_parsed"
-    data_dir = HOME_DIR + '_' + input_fname
+    files_test = [
+             'featuresDevSet.csv',
+             'featuresTest2014.csv',
+             'featuresTest2015.csv',
+             'featuresTest2016.csv',
+             ]
 
-    training_tweets = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev_{}.tids.npy'.format(embedding)))
-    training_sentiments = numpy.load(os.path.join(data_dir, 'task-B-train-plus-dev_{}.sentiments.npy'.format(embedding)))
+    train_files = [
+        'featuresData.csv',
+        'featuresDev2016.csv',
+        'featuresDevTest2016.csv',
+        'featuresTrain2016.csv'
+    ]
 
-    dev_tweets1 = numpy.load(os.path.join(data_dir, 'task-B-test2015-twitter_{}.tids.npy'.format(embedding)))
-    dev_sentiments1 = numpy.load(os.path.join(data_dir, 'task-B-test2015-twitter_{}.sentiments.npy'.format(embedding)))
+    print 'Load Data'
+    sub_dirs = [
+        'model1_2014opt',
+        'model2_2015opt',
+        'model3_2016devtest_opt'
+    ]
+    X_train,y_train = load_senvecs(sub_dirs,train_files)
+    print 'Load Test'
+    X_test2015,y_test2015 = load_senvecs(sub_dirs,['featuresTest2015.csv'])
+    X_test2014,y_test2014 = load_senvecs(sub_dirs,['featuresTest2014.csv'])
+    X_test2016,y_test2016 = load_senvecs(sub_dirs,['featuresTest2016.csv'])
 
-    dev_tweets2 = numpy.load(os.path.join(data_dir, 'task-B-test2014-twitter_{}.tids.npy'.format(embedding)))
-    dev_sentiments2 = numpy.load(os.path.join(data_dir, 'task-B-test2014-twitter_{}.sentiments.npy'.format(embedding)))
-
-    sentence_vectors = load_senvecs(data_dir + '/twitter_sentence_vecs_loaded_f67.txt')
-    X_train = getX(training_tweets,sentence_vectors)
-    X_dev = getX(dev_tweets1,sentence_vectors)
-    X_dev2 = getX(dev_tweets2,sentence_vectors)
-
-    print "Train SVM"
-    svm = LinearSVC(C=math.pow(10,3),class_weight={0:1.713,1:0.5593,2:0.72329},multi_class='crammer_singer')
-    svm.fit(X_train,training_sentiments)
-    print "predict"
-    y_pred = svm.predict(X_dev)
-    f1 = semeval_f1(dev_sentiments1,y_pred)
-    print 'F1 score 2015:',f1
-    y_pred = svm.predict(X_dev2)
-    f1 = semeval_f1(dev_sentiments2,y_pred)
-    print 'F1 score 2014:',f1
+    #model = NMF(n_components=3, init='random', random_state=0)
+    model = TruncatedSVD(n_components=3)
+    W_train = model.fit_transform(X_train,y=y_train)
+    plt.ion()
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.scatter(W_train[:,0],W_train[:,1],W_train[:,2],c=y_train)
+    plt.show()
+    #for angle in range(0, 1):
+    #    ax.view_init(0, angle)
+    #    fig.canvas.draw()
 
 
+    W_test2015 = model.transform(X_test2015)
+    #fig = plt.figure()
+    #ax = fig.add_subplot(111, projection='3d')
+    #ax.scatter(W_test2015[:,0],W_test2015[:,1],W_test2015[:,2],c=y_test2015)
+    #plt.show()
+
+    W_test2014 = model.transform(X_test2014)
+    #fig = plt.figure()
+    #ax = fig.add_subplot(111, projection='3d')
+    #ax.scatter(W_test2014[:,0],W_test2014[:,1],W_test2014[:,2],c=y_test2014)
+    #plt.show()
+
+
+    W_test2016 = model.transform(X_test2016)
+    classifiers = [
+        KNeighborsClassifier(n_neighbors=200,weights='distance'),
+        ExtraTreesClassifier(n_jobs=2,n_estimators=10000, max_depth=None,max_features=3,min_samples_split=1, random_state=0,class_weight={0:1.74733,1:0.6238,2:0.6288},bootstrap=True),
+    ]
+    names = [
+        'KNN',
+        #'ExtraTreesClassifier',
+    ]
+
+
+
+    for (clf,name) in zip(classifiers,names):
+        print 'Learn',name
+        model = clf.fit(W_train,y_train)
+        print 'Predict'
+        y_pred2015 = model.predict(W_test2015)
+        y_pred2014 = model.predict(W_test2014)
+        print "F1 2015:",semeval_f1(y_test2015,y_pred2015)
+        print 'F1 2014:',semeval_f1(y_test2014,y_pred2014)
+        y_pred2016 =model.predict(W_test2016)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(W_test2016[:,0],W_test2016[:,1],W_test2016[:,2],c=y_pred2016)
+        plt.show()
 
 
 
