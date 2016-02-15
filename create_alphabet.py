@@ -51,11 +51,8 @@ class Alphabet(dict):
 
 
 def main():
-    HOME_DIR = "semeval_parsed_200M"
-    ndim = 52
-    input_fname = '200M'
+    outdir = "semeval_parsed_200M"
 
-    outdir = HOME_DIR + '_' + input_fname
     print outdir
     if not os.path.exists(outdir):
         os.makedirs(outdir)
