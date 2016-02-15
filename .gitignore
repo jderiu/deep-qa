@@ -7,3 +7,5 @@ embeddings
 .py~
 semeval_parsed
 ~
+semeval/smiley_tweets_200M.gz
+semeval/smiley_tweets_200M_balanced.gz

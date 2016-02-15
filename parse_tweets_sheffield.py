@@ -6,9 +6,10 @@ import operator
 
 
 def preprocess_tweet(tweet):
+    #lowercase and normalize urls
     tweet = tweet.lower()
     tweet = re.sub('((www\.[^\s]+)|(https?://[^\s]+)|(http?://[^\s]+))','<url>',tweet)
-    tweet = re.sub('@[^\s]+','<user>',tweet)
+    #tweet = re.sub('@[^\s]+','<user>',tweet)
     #tweet = re.sub(r'#([^\s]+)', r'\1', tweet)
     try:
         tweet = tweet.decode('unicode_escape').encode('ascii','ignore')
@@ -20,6 +21,7 @@ emo_dict = {}
 
 
 def read_emo(path):
+    #read the smiley-score from the file
     with open(path) as f:
         counter = 0
         for line in f:
@@ -31,6 +33,7 @@ def read_emo(path):
 
 
 def convert_sentiment(tweet,trim=True):
+    #given a tweet infer the sentiment by taking the label of the smiley-type which occurs most often
     tweet = tweet.decode('utf-8','ignore')
     emos = {}
     for emo,score in emo_dict.iteritems():
@@ -73,13 +76,14 @@ def convert2indices(data, alphabet, dummy_word_idx, max_sent_length=140):
 
 
 def store_file(f_in,f_out,alphabet,dummy_word_idx,sentiment_fname=None):
+    #stores the tweets in batches so it fits in memory
     tknzr = TweetTokenizer(reduce_len=True)
     counter = 0
     output = open(f_out,'wb')
     if sentiment_fname:
         print 'Create sentiments',sentiment_fname
         output_sentiment = open(sentiment_fname,'wb')
-    batch_size = 600000
+    batch_size = 500000
     tweet_batch = []
     sentiment_batch=[]
     read_emo('emoscores')
@@ -110,22 +114,3 @@ def store_file(f_in,f_out,alphabet,dummy_word_idx,sentiment_fname=None):
     return counter
 
 
-def load_data(fname):
-    read_emo('emoscores')
-    tweets,sentiments = [],[]
-    tknzr = TweetTokenizer()
-    counter = 0
-    with gzip.open(fname,'r') as f:
-        for tweet in f:
-            tweet,sentiment = convert_sentiment(tweet)
-            if sentiment != 0:
-                tweets.append(preprocess_tweet(tknzr.tokenize(tweet)))
-                sentiments.append(sentiment)
-            counter += 1
-            if (counter%10000) == 0:
-                print "Elements processed:",counter
-    return tweets,sentiments
-
-if __name__ == '__main__':
-    tweets, sentiments = load_data("semeval/smiley_tweets.gz")
-    print len(tweets)

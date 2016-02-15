@@ -8,6 +8,7 @@ import os
 import operator
 import getopt
 
+
 class Alphabet(dict):
     def __init__(self, start_feature_id=1):
         self.fid = start_feature_id
@@ -28,11 +29,9 @@ class Alphabet(dict):
             for k in sorted(self.keys()):
                 out.write("{}\t{}\n".format(k, self[k]))
 
-    def purge_dict(self,input_fname,min_freq=5,emb='custom',ndim=52):
-        if emb == 'glove':
-            emb_fname,delimiter,ndim = ('embeddings/glove.twitter.27B.50d.txt',' ',50)
-        else:
-            emb_fname,delimiter,ndim = ('embeddings/smiley_tweets_embedding_{}'.format(input_fname,ndim),' ',ndim)
+    def purge_dict(self,input_fname,min_freq=5):
+        #removes all words from the alphabet which occur less than 5 times or are not contained in the word embeddings
+        emb_fname,delimiter,ndim = ('embeddings/smiley_tweets_embedding_final',' ',52)
 
         word2vec = load_glove_vec(emb_fname,{},delimiter,ndim)
         for k in self.keys():
@@ -42,6 +41,7 @@ class Alphabet(dict):
             else:
                 self[k] = idx
 
+        #reset fid after deletion
         self['UNK'] = 0
         counter = self.first
         for k,idx in sorted(self.items(),key=operator.itemgetter(1)):
@@ -50,58 +50,28 @@ class Alphabet(dict):
         self.fid = counter
 
 
-def usage():
-    print 'python create_alphabet.py -i <small,30M> -e <embedding:glove or custom> -t <emb type:30M small,200M>'
-
-
 def main():
-    HOME_DIR = "semeval_parsed"
-    input_fname = 'small'
-    embedding = 'glove'
-    type = 'small'
-    ndim = 100
-
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:e:t:d:", ["help", "input=","embedding=",'type=','dim='])
-    except getopt.GetoptError as err:
-        print str(err)
-        usage()
-        sys.exit(2)
-    for o, a in opts:
-        if o in ("-e","--embedding"):
-            if a in ('glove','custom'):
-                embedding = a
-            else:
-                usage()
-                sys.exit()
-        elif o in ("-h", "--help"):
-            usage()
-            sys.exit()
-        elif o in ("-i", "--input"):
-            input_fname = a
-        elif o in ('-t','type='):
-            type = a
-        elif o in ('-d','dim='):
-            ndim = int(a)
-        else:
-            assert False, "unhandled option"
+    HOME_DIR = "semeval_parsed_200M"
+    ndim = 52
+    input_fname = '200M'
 
     outdir = HOME_DIR + '_' + input_fname
+    print outdir
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
 
-
-    print embedding
-    print input_fname
-
+    #supervised data
     train = "semeval/task-B-train-plus-dev.tsv"
     test = "semeval/task-B-test2014-twitter.tsv"
     dev = "semeval/twitter-test-gold-B.downloaded.tsv"
     test15 = "semeval/task-B-test2015-twitter.tsv"
-    smiley_pos = 'semeval/smiley_tweets_{}.gz'.format(input_fname)
     train16 = "semeval/task-A-train-2016.tsv"
     dev2016 = "semeval/task-A-dev-2016.tsv"
     devtest2016 = "semeval/task-A-devtest-2016.tsv"
     test2016 = "semeval/SemEval2016-task4-test.subtask-A.txt"
-    #smiley_neg = 'semeval/smiley_tweets_{}_neg.gz'.format(input_fname)
+
+    #unsupervised data
+    smiley_tweets_200M = 'semeval/smiley_tweets_200M.gz'
 
     alphabet = Alphabet(start_feature_id=0)
     alphabet.add('UNKNOWN_WORD_IDX')
@@ -119,7 +89,7 @@ def main():
         (test2016,2)
     ]
 
-    fnames_gz = [smiley_pos]
+    fnames_gz = [smiley_tweets_200M]
 
     counter = 0
 
@@ -147,9 +117,9 @@ def main():
         print len(alphabet)
 
     print 'Alphabet before purge:',len(alphabet)
-    alphabet.purge_dict(input_fname=type,min_freq=10,emb=embedding,ndim=ndim)
+    alphabet.purge_dict(input_fname=type,min_freq=10)
     print 'Alphabet after purge:',len(alphabet)
-    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab_{}_{}.pickle'.format(embedding,ndim)), 'w'))
+    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab.pickle'), 'w'))
 
 
 if __name__ == '__main__':

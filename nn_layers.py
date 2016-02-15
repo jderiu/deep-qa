@@ -499,7 +499,7 @@ class LogisticRegression(Layer):
         # P(Y|X) = softmax(W.X + b)
         self.p_y_given_x = T.nnet.softmax(self._dot(input, self.W) + self.b)
         self.y_pred = T.argmax(self.p_y_given_x, axis=1)
-        return self.y_pred
+        return self.p_y_given_x
 
     def _dot(self, a, b):
         return T.dot(a, b)

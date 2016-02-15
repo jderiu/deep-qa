@@ -23,20 +23,21 @@ class MySentences(object):
 def main():
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-    input_fname = 'small'
+    input_fname = '200M'
     if len(sys.argv) > 1:
         input_fname = sys.argv[1]
 
+    #supervised data
     train = "semeval/task-B-train-plus-dev.tsv.gz"
-    test = "semeval/task-B-test2014-twitter.tsv.gz"
     dev = "semeval/twitter-test-gold-B.downloaded.tsv.gz"
-    test15 = "semeval/task-B-test2015-twitter.tsv.gz"
     train16 = "semeval/task-A-train-2016.tsv.gz"
     dev2016 = "semeval/task-A-dev-2016.tsv.gz"
     devtest2016 = "semeval/task-A-devtest-2016.tsv.gz"
     test2016 = "semeval/SemEval2016-task4-test.subtask-A.txt.gz"
+
+    #unsupervised data
     smiley_pos = 'semeval/smiley_tweets_{}.gz'.format(input_fname)
-    #smiley_neg = 'semeval/smiley_tweets_{}_neg.gz'.format(input_fname)
+
     files = [(train,3),
              (dev,3),
              (train16,2),
@@ -46,7 +47,7 @@ def main():
              (smiley_pos,0)]
     sentences = MySentences(files=files)
     model = models.Word2Vec(sentences, size=52, window=5, min_count=5, workers=7,sg=1,sample=1e-5,hs=1)
-    model.save_word2vec_format('embeddings/smiley_tweets_embedding_{}'.format(input_fname),binary=False)
+    model.save_word2vec_format('embeddings/smiley_tweets_embedding_final_{}'.format(input_fname),binary=False)
 
 
 if __name__ == '__main__':
