@@ -2,7 +2,8 @@
 exp.out
 TRAIN
 TRAIN-ALL
-embeddings
+embeddings/smiley_tweets_embedding_final
+embeddings/updated_embeddings_custom_30M
 .idea/
 .py~
 semeval_parsed

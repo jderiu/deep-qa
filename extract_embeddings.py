@@ -1,14 +1,8 @@
 import numpy as np
 import cPickle
 import os
-import sys
-import getopt
 from utils import load_glove_vec
 from alphabet import Alphabet
-
-
-def usage():
-    print 'python extract_embeddings.py -i <small,30M> -e <embedding:glove or custom>'
 
 
 def main():

@@ -23,7 +23,7 @@ class MySentences(object):
 def main():
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-    input_fname = '200M'
+    input_fname = ''
     if len(sys.argv) > 1:
         input_fname = sys.argv[1]
 
@@ -47,7 +47,7 @@ def main():
              (smiley_pos,0)]
     sentences = MySentences(files=files)
     model = models.Word2Vec(sentences, size=52, window=5, min_count=5, workers=7,sg=1,sample=1e-5,hs=1)
-    model.save_word2vec_format('embeddings/smiley_tweets_embedding_final_{}'.format(input_fname),binary=False)
+    model.save_word2vec_format('embeddings/smiley_tweets_embedding_final{}'.format(input_fname),binary=False)
 
 
 if __name__ == '__main__':

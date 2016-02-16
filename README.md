@@ -1,14 +1,6 @@
 # OVERVIEW
 
-This code implements a convolutional neural network architecture for learning to match question and answer sentences described in the paper:
-
-"Modelling Question-Answer Pairs with Convolutional Neural Networks" submitted to EMNLP, 2015
-
-The network features a state-of-the-art convolutional sentence model, advanced question-answer matching model, and introduces a novel relational model to encode related words in a question-answer pair.
-
-The addressed task is a popular answer sentence selection benchmark, where the goal is for each question to select relevant answer sentences. The dataset was first introduced by (Wang et al., 2007) and further elaborated by (Yao et al., 2013). It is freely [availabe](http://cs.jhu.edu/~xuchen/packages/jacana-qa-naacl2013-data-results.tar.bz2).
-
-Evaluation is performed using the standard 'trec_eval' script.
+This code implements a convolutional neural network for twitter sentiment classification. It is based on convolutional sentence embedding (Aliaksei Severyn et al., 2015).
 
 
 # DEPENDENCIES
@@ -27,32 +19,22 @@ Evaluation is performed using the standard 'trec_eval' script.
 Python packages can be easily installed using the standard tool: pip install <package>
 
 #SETUP
-in the semeval folder place your tweets. 
+- Place your unsupervised tweets into the semeval/ folder: it sould be called 'smiley_tweets_200M.gz'
+- Either run the create_word_embeddings.py code or copy your word embeddings into the embedding/ folder: call it 'smiley_tweets_embedding_final'
 
-For the supervised use:
-- task-B-test2014-twitter
-- task-B-test2015-twitter
-- task-B-train-plus-dev
-- twitter-test-gold-B.downloaded
-
-For the distant supervised the tweets neet to be gzipped and have the form: smiley_tweets_\<name>_pos.gz and smiley_tweets__\<name>_neg.gz.
-If you have all tweets in the same gz you can use the partition_tweets.py \<name> to split the tweets.
-
-In the embeddings folder:
-- glove.twitter.27B.50d for the glove embeddings
-- or
-- smiley_tweets_embedding_\<name> for the custom made embeddings
 
 # PREPROCESS
-Note that \<name> is 'small' in the provided sample case.
-- python create_word_embeddings.py \<name>
-- python create_alphabet.py -i \<name> -e \<embedding: glove or custom>
-- python parse_tweets.py -i \<name> -e \<embedding: glove or custom>
-- python glove_embeddings.py -i \<name> -e \<embedding: glove or custom>
+- python create_word_embeddings.py 
+- python create_alphabet.py 
+- python parse_tweets.py 
+- python extract_embeddings.py
 
 
 # TRAIN AND TEST
-- THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python sentence_vectors.py -i \<name> -e \<embedding: glove or custom>
+- THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python distant_supervised_step.py
+	- Runs the distant-supervised step, it saves the model in an object called: parameters_distant.p
+- THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python supervised_step.py
+	- Runs the supervised step, it reads the parameters_distant.p file, which needs to be there.
 
 
 # REFERENCES
@@ -64,3 +46,8 @@ In NAACL, 2013.
 Mengqiu Wang, Noah A. Smith, and Teruko Mitaura.
 What is the jeopardy model? a quasi- synchronous grammar for qa.
 In EMNLP, 2007.
+
+Aliaksei Severyn, Alessandro Moschitt.
+Twitter Sentiment Analysis with Deep Convolutional Neural Networks.
+SIGIR’15, August 09 - 13, 2015, Santiago, Chile
+

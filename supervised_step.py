@@ -24,7 +24,7 @@ def main():
     data_dir = HOME_DIR + '_' + input_fname
     numpy_rng = numpy.random.RandomState(123)
     print "Load Parameters"
-    parameter_map = cPickle.load(open(data_dir+'/parameters_distant_winner.p', 'rb'))
+    parameter_map = cPickle.load(open(data_dir+'/parameters_distant.p', 'rb'))
     input_shape = parameter_map['inputShape']
     filter_width = parameter_map['filterWidth']
     n_in = parameter_map['n_in']
