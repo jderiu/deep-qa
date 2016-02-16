@@ -56,6 +56,10 @@ def main():
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
+    parse_200M = True
+    if len(sys.argv) > 1:
+        parse_200M = False
+
     train2013 = "semeval/task-B-train.20140221.tsv"
     dev2013 = "semeval/task-B-dev.20140225.tsv"
     test2013_sms = "semeval/task-B-test2013-sms.tsv"
@@ -103,11 +107,11 @@ def main():
         np.save(os.path.join(outdir, '{}.tweets.npy'.format(basename)), tweet_idx)
         np.save(os.path.join(outdir, '{}.sentiments.npy'.format(basename)), sentiments)
 
-
-    #print "Loading Smiley Data"
-    #basename, _ = os.path.splitext(os.path.basename('smiley_tweets'))
-    #nTweets = pts.store_file(smiley_tweets,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx,sentiment_fname=os.path.join(outdir,'{}.sentiments.npy'.format(basename)))
-    #print "Number of tweets:", nTweets
+    if parse_200M:
+        print "Loading Smiley Data"
+        basename, _ = os.path.splitext(os.path.basename('smiley_tweets'))
+        nTweets = pts.store_file(smiley_tweets,os.path.join(outdir, '{}.tweets.npy'.format(basename)),alphabet,dummy_word_idx,sentiment_fname=os.path.join(outdir,'{}.sentiments.npy'.format(basename)))
+        print "Number of tweets:", nTweets
 
 
 if __name__ == '__main__':
