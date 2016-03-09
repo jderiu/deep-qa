@@ -61,7 +61,7 @@ def semeval_f1_taskA(y_truth,y_pred):
         pos_F1 = 2*(pos_precision*pos_recall)/(pos_precision + pos_recall)
 
     f1 = (neg_F1 + pos_F1)/2
-    return f1
+    return f1*100
 
 
 def semeval_f1_taskB(y_truth,y_pred):

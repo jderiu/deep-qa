@@ -7,11 +7,10 @@ import theano
 import os
 from tqdm import tqdm
 import sgd_trainer
-import sys
 import time
-import getopt
-from evaluation_metrics import semeval_f1_taskA,semeval_f1_taskB
-from sklearn import metrics
+from evaluation_metrics import semeval_f1_taskA
+import sys
+
 
 
 def main():
@@ -31,9 +30,8 @@ def main():
     parameter_map = cPickle.load(open(data_dir+'/parameters_distant_{}.p'.format(test_type), 'rb'))
     input_shape = parameter_map['inputShape']
     filter_width = parameter_map['filterWidth']
-    n_in = parameter_map['n_in']
-    st = parameter_map['st']
-
+    n_in = parameter_map['qLogisticIn']
+    k_max = parameter_map['kmax']
 
     def relu(x):
         return x * (x > 0)
@@ -67,35 +65,12 @@ def main():
         activation=activation
     )
 
-    shape1 = parameter_map['PoolingShape1']
-    pooling = nn_layers.KMaxPoolLayerNative(shape=shape1,ignore_border=True,st=st)
-
-    input_shape2 = parameter_map['input_shape2'+ str(filter_width)]
-    filter_shape2 = parameter_map['FilterShape2' + str(filter_width)]
-
-    con2 = nn_layers.Conv2dLayer(
-        W=parameter_map['Conv2dLayerW2' + str(filter_width)],
-        rng=numpy_rng,
-        input_shape=input_shape2,
-        filter_shape=filter_shape2
-    )
-
-    non_linearity2 = nn_layers.NonLinearityLayer(
-        b=parameter_map['NonLinearityLayerB2' + str(filter_width)],
-        b_size=filter_shape2[0],
-        activation=activation
-    )
-
-    shape2 = parameter_map['PoolingShape2']
-    pooling2 = nn_layers.KMaxPoolLayerNative(shape=shape2,ignore_border=True)
+    pooling = nn_layers.KMaxPoolLayer(k_max=k_max)
 
     conv2dNonLinearMaxPool = nn_layers.FeedForwardNet(layers=[
         conv,
         non_linearity,
-        pooling,
-        con2,
-        non_linearity2,
-        pooling2
+        pooling
     ])
 
     conv_layers.append(conv2dNonLinearMaxPool)
@@ -164,6 +139,7 @@ def main():
         preds = numpy.hstack([pred_fn(batch_x_q[0]) for batch_x_q in batch_iterator])
         return preds[:batch_iterator.n_samples]
 
+
     #######
     #Names#
     #######
@@ -183,7 +159,6 @@ def main():
     ep_pred[test_2014ljn] = []
     ep_pred[test_2014srcn] = []
     ep_pred[test_2013_smsn] = []
-
 
      #######################
     # Supervised Learining#
@@ -238,6 +213,7 @@ def main():
     test_2014_sarcasm_tweets = numpy.load(os.path.join(data_dir, 'task-B-test2014-twittersarcasm.tweets.npy'))
     test_2014_sarcasm_sentiments = numpy.load(os.path.join(data_dir, 'task-B-test2014-twittersarcasm.sentiments.npy'))
 
+
     training_full_tweets = numpy.concatenate((training2013_tweets,dev_2013_tweets),axis=0)
     training_full_tweets = numpy.concatenate((training_full_tweets,trainingA_2016_tweets),axis=0)
     training_full_tweets = numpy.concatenate((training_full_tweets,devA_2016_tweets),axis=0)
@@ -247,7 +223,6 @@ def main():
     training_full_sentiments = numpy.concatenate((training_full_sentiments,trainingA_2016_sentiments),axis=0)
     training_full_sentiments = numpy.concatenate((training_full_sentiments,devA_2016_sentiments),axis=0)
     training_full_sentiments = numpy.concatenate((training_full_sentiments,devtestA_2016_sentiments),axis=0)
-
 
     train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
         numpy_rng,
@@ -270,9 +245,9 @@ def main():
         randomize=False
     )
 
-    test_2016_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
+    devtestA2016_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
         numpy_rng,
-        [test_2016_tweets],
+        [devtestA_2016_tweets],
         batch_size=batch_size,
         randomize=False
     )
@@ -311,6 +286,7 @@ def main():
         batch_size=batch_size,
         randomize=False
     )
+
 
     train2013_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
         numpy_rng,
@@ -358,12 +334,17 @@ def main():
 
                 if i % check_freq == 0 or i == num_train_batches:
                     y_pred_dev_2015 = predict_batch(test_2015_iterator)
+                    #y_pred_train_2013 = predict_batch(train2013_iterator)
+                    #y_pred_train_2016 = predict_batch(train2016_iterator)
+                    #y_pred_dev2016 = predict_batch(dev2016_iterator)
+                    #y_pred_dev2013 = predict_batch(dev_2013_iterator)
+                    y_pred_test_2016 = predict_batch(test2016_iterator)
                     y_pred_test_2014 = predict_batch(test_2014_iterator)
                     y_pred_test_2013 = predict_batch(test2013_itarator)
                     y_pred_test_sms_2013 = predict_batch(test_2013_sms_iterator)
                     y_pred_test_livejournal_2014 = predict_batch(test_2014_livejournal_iterator)
                     y_pred_test_sarcasm_2014 = predict_batch(test_2014_sarcasm_iterator)
-                    y_pred_test_2016 = predict_batch(test_2016_iterator)
+                    #y_pred_devtest_2016 = predict_batch(devtestA2016_iterator)
 
                     dev_acc_2015 = semeval_f1_taskA(test_2015_sentiments,y_pred_dev_2015)
                     dev_acc_2014 = semeval_f1_taskA(test_2014_sentiments,y_pred_test_2014)
@@ -371,9 +352,9 @@ def main():
                     dev_acc_2014_srcs = semeval_f1_taskA(test_2014_sarcasm_sentiments,y_pred_test_sarcasm_2014)
                     dev_acc_2013 = semeval_f1_taskA(test_2013_sentiments,y_pred_test_2013)
                     dev_acc_2013_sms = semeval_f1_taskA(test_2013_sms_sentiments,y_pred_test_sms_2013)
-                    dev_acc_2016_test = semeval_f1_taskA(test_2016_sentiments,y_pred_test_2016)
+                    dev_acc_2016 = semeval_f1_taskA(test_2016_sentiments,y_pred_test_2016)
 
-                    ep_pred[test_2016n].append(dev_acc_2016_test)
+                    ep_pred[test_2016n].append(dev_acc_2016)
                     ep_pred[test_2015n].append(dev_acc_2015)
                     ep_pred[test_2014n].append(dev_acc_2014)
                     ep_pred[test_2013n].append(dev_acc_2013)
@@ -381,19 +362,20 @@ def main():
                     ep_pred[test_2014srcn].append(dev_acc_2014_srcs)
                     ep_pred[test_2013_smsn].append(dev_acc_2013_sms)
 
-                    if dev_acc_2016_test > best_dev_acc:
-
-                        best_dev_acc = dev_acc_2015
+                    if dev_acc_2016 > best_dev_acc:
+                        best_dev_acc = dev_acc_2016
                         best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
                         no_best_dev_update = 0
 
-                        print('2016 epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2016_test))
+                        print('2016 epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2016))
                         print('2015 epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2015))
                         print('2014 epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2014))
                         print('2013 epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2013))
                         print('2014lj epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2014_lj))
                         print('2014src epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2014_srcs))
                         print('2013sms epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2013_sms))
+                        #print('devtest2016 epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2016_devtest))
+
 
 
         zerout_dummy_word()

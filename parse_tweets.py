@@ -71,7 +71,7 @@ def main():
     train16 = "semeval/task-A-train-2016.tsv"
     dev2016 = "semeval/task-A-dev-2016.tsv"
     devtest2016 = "semeval/task-A-devtest-2016.tsv"
-    test2016 = "semeval/SemEval2016-task4-test.subtask-A.txt"
+    test2016 = "semeval/task-A-test2016.tsv"
 
     smiley_tweets = 'semeval/smiley_tweets_{}_balanced.gz'.format(input_fname)
 

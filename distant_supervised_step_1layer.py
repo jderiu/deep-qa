@@ -8,8 +8,8 @@ import sgd_trainer
 from tqdm import tqdm
 import time
 from sklearn import metrics
-from scipy.stats import truncnorm
 import theano.sandbox.cuda.basic_ops
+from scipy.stats import truncnorm
 import sys
 import getopt
 
@@ -22,7 +22,7 @@ def get_next_chunk(fname_tweet,fname_sentiment,n_chunks=1):
         try:
             batch_tweet = numpy.load(fname_tweet)
             batch_sentiment = numpy.load(fname_sentiment)
-            if tweet_set is None:
+            if tweet_set == None:
                 tweet_set = batch_tweet
                 sentiment_set = batch_sentiment
             else:
@@ -50,8 +50,7 @@ def main(argv):
     argv = map(lambda x: x.replace('\r',''),argv)
     try:
       opts, args = getopt.getopt(argv,"ut:r:d:c:",["testtype=","randtype=","ndim=","n_chunks="])
-    except getopt.GetoptError as e:
-        print e
+    except getopt.GetoptError:
         sys.exit(2)
     for opt, arg in opts:
         if opt in ("-r", "--randtype"):
@@ -78,6 +77,7 @@ def main(argv):
     # Load word2vec embeddings
     embedding_fname = 'emb_smiley_tweets_embedding_final.npy'
     fname_wordembeddings = os.path.join(data_dir, embedding_fname)
+
     print "Loading word embeddings from", fname_wordembeddings
     vocab_emb = numpy.load(fname_wordembeddings)
     print type(vocab_emb[0][0])
@@ -111,23 +111,16 @@ def main(argv):
         return x * (x > 0)
 
     activation = relu
-    nkernels1 = 200
-    nkernels2 = 200
+    nkernels = 300
     k_max = 1
-    shape1 = 6
-    st = (3,1)
     num_input_channels = 1
-    filter_width1 = 6
-    filter_width2 = 3
-    q_logistic_n_in = nkernels1 * k_max
-    sent_size = q_max_sent_size + 2*(filter_width1 - 1)
-    layer1_size = (sent_size - filter_width1 + 1 - shape1)//st[0] + 1
-    print layer1_size
+    filter_width = 5
+    n_in = nkernels * k_max
 
     input_shape = (
         batch_size,
         num_input_channels,
-        q_max_sent_size + 2 * (filter_width1 - 1),
+        q_max_sent_size + 2 * (filter_width - 1),
         ndim
     )
 
@@ -135,34 +128,30 @@ def main(argv):
     # LAYERS #
     #########
     parameter_map = {}
-    parameter_map['nKernels1'] = nkernels1
-    parameter_map['nKernels2'] = nkernels2
+    parameter_map['nKernels1'] = nkernels
     parameter_map['num_input_channels'] = num_input_channels
     parameter_map['ndim'] = ndim
     parameter_map['inputShape'] = input_shape
-    parameter_map['activation'] = 'relu'
-    parameter_map['qLogisticIn'] = q_logistic_n_in
+    parameter_map['qLogisticIn'] = n_in
     parameter_map['kmax'] = k_max
-    parameter_map['st'] = st
 
-    parameter_map['filterWidth'] = filter_width1
+    parameter_map['filterWidth'] = filter_width
 
     if not update_wemb:
-        lookup_table_words = nn_layers.LookupTableFastStatic(W=vocab_emb,pad=filter_width1-1)
+        lookup_table_words = nn_layers.LookupTableFastStatic(W=vocab_emb,pad=filter_width-1)
     else:
-        lookup_table_words = nn_layers.LookupTableFast(W=vocab_emb,pad=filter_width1-1)
+        lookup_table_words = nn_layers.LookupTableFast(W=vocab_emb,pad=filter_width-1)
 
     parameter_map['LookupTableFastStaticW'] = lookup_table_words.W
 
-    #conv_layers = []
     filter_shape = (
-        nkernels1,
+        nkernels,
         num_input_channels,
-        filter_width1,
+        filter_width,
         ndim
     )
 
-    parameter_map['FilterShape' + str(filter_width1)] = filter_shape
+    parameter_map['FilterShape' + str(filter_width)] = filter_shape
 
     conv = nn_layers.Conv2dLayer(
         rng=numpy_rng,
@@ -170,66 +159,21 @@ def main(argv):
         input_shape=input_shape
     )
 
-    parameter_map['Conv2dLayerW' + str(filter_width1)] = conv.W
+    parameter_map['Conv2dLayerW' + str(filter_width)] = conv.W
 
     non_linearity = nn_layers.NonLinearityLayer(
         b_size=filter_shape[0],
         activation=activation
     )
 
-    parameter_map['NonLinearityLayerB' + str(filter_width1)] = non_linearity.b
+    parameter_map['NonLinearityLayerB' + str(filter_width)] = non_linearity.b
 
-    pooling = nn_layers.KMaxPoolLayerNative(shape=shape1,ignore_border=True,st=st)
-
-    parameter_map['PoolingShape1'] = shape1
-    parameter_map['PoolingSt1'] = st
-
-    input_shape2 = (
-        batch_size,
-        nkernels1,
-        (input_shape[2] - filter_width1 + 1 - shape1)//st[0] + 1,
-        1
-    )
-
-    parameter_map['input_shape2'+ str(filter_width1)] = input_shape2
-
-    filter_shape2 = (
-        nkernels2,
-        nkernels1,
-        filter_width2,
-        1
-    )
-
-    parameter_map['FilterShape2' + str(filter_width1)] = filter_shape2
-
-    con2 = nn_layers.Conv2dLayer(
-        rng=numpy_rng,
-        input_shape=input_shape2,
-        filter_shape=filter_shape2
-    )
-
-    parameter_map['Conv2dLayerW2' + str(filter_width1)] = con2.W
-
-    non_linearity2 = nn_layers.NonLinearityLayer(
-        b_size=filter_shape2[0],
-        activation=activation
-    )
-
-    parameter_map['NonLinearityLayerB2' + str(filter_width1)] = non_linearity2.b
-
-    shape2 = input_shape2[2] - filter_width2 + 1
-    pooling2 = nn_layers.KMaxPoolLayerNative(shape=shape2,ignore_border=True)
-    n_in = nkernels2*(layer1_size - filter_width2 + 1)//shape2
-    parameter_map['n_in'] = n_in
-    parameter_map['PoolingShape2'] = shape2
+    pooling = nn_layers.KMaxPoolLayer(k_max=k_max)
 
     conv2dNonLinearMaxPool = nn_layers.FeedForwardNet(layers=[
         conv,
         non_linearity,
-        pooling,
-        con2,
-        non_linearity2,
-        pooling2
+        pooling
     ])
 
     flatten_layer = nn_layers.FlattenLayer()

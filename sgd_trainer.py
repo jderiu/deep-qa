@@ -41,26 +41,30 @@ class MiniBatchIterator(object):
 
 class MiniBatchIteratorConstantBatchSize(object):
     """ Basic mini-batch iterator """
-    def __init__(self, rng, datasets, batch_size=100, randomize=False):
+    def __init__(self, rng, datasets, batch_size=1000, randomize=False):
         self.rng = rng
 
         self.batch_size = batch_size
         self.n_samples = datasets[0].shape[0]
         padded_datasets = []
         for d in datasets:
-          if batch_size == len(d):
-            pad_size = 0
-          else:
-          	pad_size = batch_size - len(d) % batch_size
-          pad = d[:pad_size]
-          padded_dataset = numpy.concatenate([d, pad])
-          padded_datasets.append(padded_dataset)
+            if batch_size == len(d):
+                pad_size = 0
+            else:
+                pad_size = batch_size - len(d) % batch_size
+
+            pad = d[:pad_size]
+            if self.n_samples < pad_size:
+                n = numpy.ceil(float(pad_size)/self.n_samples)
+                for i in xrange(int(n)):
+                    pad = numpy.concatenate([pad,d[:pad_size]])
+
+            padded_dataset = numpy.concatenate([d, pad])
+            padded_datasets.append(padded_dataset)
         self.datasets = padded_datasets
         self.n_batches = (self.n_samples + self.batch_size - 1) / self.batch_size
 
         self.randomize = randomize
-        #print 'n_samples', self.n_samples
-        #print 'n_batches', self.n_batches
 
     def __len__(self):
       return self.n_batches
@@ -178,7 +182,7 @@ def get_adadelta_updates(cost, params, rho=0.95, eps=1e-6, max_norm=9, word_vec_
         exp_su = exp_sqr_ups[param]
         up_exp_sg = rho * exp_sg + (1 - rho) * T.sqr(gp)
         updates[exp_sg] = up_exp_sg
-        step =  -(T.sqrt(exp_su + eps) / T.sqrt(up_exp_sg + eps)) * gp
+        step = -(T.sqrt(exp_su + eps) / T.sqrt(up_exp_sg + eps)) * gp
         updates[exp_su] = rho * exp_su + (1 - rho) * T.sqr(step)
         stepped_param = param + step
         # if (param.get_value(borrow=True).ndim == 2) and (param.name != word_vec_name):

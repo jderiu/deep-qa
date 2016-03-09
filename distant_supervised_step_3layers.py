@@ -113,16 +113,17 @@ def main(argv):
     activation = relu
     nkernels1 = 200
     nkernels2 = 200
+    nkernels3 = 200
     k_max = 1
     shape1 = 6
     st = (3,1)
     num_input_channels = 1
     filter_width1 = 6
     filter_width2 = 3
+    filter_width3 = 3
     q_logistic_n_in = nkernels1 * k_max
     sent_size = q_max_sent_size + 2*(filter_width1 - 1)
     layer1_size = (sent_size - filter_width1 + 1 - shape1)//st[0] + 1
-    print layer1_size
 
     input_shape = (
         batch_size,
@@ -162,7 +163,7 @@ def main(argv):
         ndim
     )
 
-    parameter_map['FilterShape' + str(filter_width1)] = filter_shape
+    parameter_map['FilterShape'] = filter_shape
 
     conv = nn_layers.Conv2dLayer(
         rng=numpy_rng,
@@ -170,14 +171,14 @@ def main(argv):
         input_shape=input_shape
     )
 
-    parameter_map['Conv2dLayerW' + str(filter_width1)] = conv.W
+    parameter_map['Conv2dLayerW'] = conv.W
 
     non_linearity = nn_layers.NonLinearityLayer(
         b_size=filter_shape[0],
         activation=activation
     )
 
-    parameter_map['NonLinearityLayerB' + str(filter_width1)] = non_linearity.b
+    parameter_map['NonLinearityLayerB'] = non_linearity.b
 
     pooling = nn_layers.KMaxPoolLayerNative(shape=shape1,ignore_border=True,st=st)
 
@@ -191,7 +192,7 @@ def main(argv):
         1
     )
 
-    parameter_map['input_shape2'+ str(filter_width1)] = input_shape2
+    parameter_map['input_shape2'] = input_shape2
 
     filter_shape2 = (
         nkernels2,
@@ -200,7 +201,7 @@ def main(argv):
         1
     )
 
-    parameter_map['FilterShape2' + str(filter_width1)] = filter_shape2
+    parameter_map['FilterShape2'] = filter_shape2
 
     con2 = nn_layers.Conv2dLayer(
         rng=numpy_rng,
@@ -208,20 +209,62 @@ def main(argv):
         filter_shape=filter_shape2
     )
 
-    parameter_map['Conv2dLayerW2' + str(filter_width1)] = con2.W
+    parameter_map['Conv2dLayerW2'] = con2.W
 
     non_linearity2 = nn_layers.NonLinearityLayer(
         b_size=filter_shape2[0],
         activation=activation
     )
 
-    parameter_map['NonLinearityLayerB2' + str(filter_width1)] = non_linearity2.b
+    parameter_map['NonLinearityLayerB2'] = non_linearity2.b
 
-    shape2 = input_shape2[2] - filter_width2 + 1
-    pooling2 = nn_layers.KMaxPoolLayerNative(shape=shape2,ignore_border=True)
-    n_in = nkernels2*(layer1_size - filter_width2 + 1)//shape2
-    parameter_map['n_in'] = n_in
+    #shape2 = input_shape2[2] - filter_width2 + 1
+    shape2 = 4
+    st2 = (2,1)
+    pooling2 = nn_layers.KMaxPoolLayerNative(shape=shape2,st=st2,ignore_border=True)
     parameter_map['PoolingShape2'] = shape2
+    parameter_map['st2'] = st2
+
+    #layer 3
+    input_shape3 = (
+        batch_size,
+        nkernels2,
+        (input_shape2[2] - filter_width2 + 1 - shape2)//st2[0] + 1,
+        1
+    )
+
+    parameter_map['input_shape3'] = input_shape3
+
+    filter_shape3 = (
+        nkernels3,
+        nkernels2,
+        filter_width3,
+        1
+    )
+
+    parameter_map['FilterShape3'] = filter_shape3
+
+    con3 = nn_layers.Conv2dLayer(
+        rng=numpy_rng,
+        input_shape=input_shape3,
+        filter_shape=filter_shape3
+    )
+
+    parameter_map['Conv2dLayerW3'] = con3.W
+
+    non_linearity3 = nn_layers.NonLinearityLayer(
+        b_size=filter_shape3[0],
+        activation=activation
+    )
+
+    parameter_map['NonLinearityLayerB3'] = non_linearity3.b
+
+    shape3 = input_shape3[2] - filter_width3 + 1
+    pooling3 = nn_layers.KMaxPoolLayerNative(shape=shape3,ignore_border=True)
+    parameter_map['PoolingShape3'] = shape3
+
+    n_in = nkernels3*(input_shape3[2] - filter_width3 + 1)//shape3
+    parameter_map['n_in'] = n_in
 
     conv2dNonLinearMaxPool = nn_layers.FeedForwardNet(layers=[
         conv,
@@ -229,7 +272,10 @@ def main(argv):
         pooling,
         con2,
         non_linearity2,
-        pooling2
+        pooling2,
+        con3,
+        non_linearity3,
+        pooling3
     ])
 
     flatten_layer = nn_layers.FlattenLayer()
