@@ -4,7 +4,7 @@ import numpy as np
 
 
 def main():
-    resmap = cPickle.load(open('sup_res/supervised_results_L2T85Wrandomtrue.p','rb'))
+    resmap = cPickle.load(open('sup_res/supervised_results_L2T85Wcustom.p','rb'))
 
     test_2016n = 'Test 2016'
     test_2015n = 'Test 2015'
@@ -23,11 +23,11 @@ def main():
         mx = max(res_k)
         idx = resmap[k].index(mx)
         print k,':\t',mx,' at epoch:', (idx + 1)/2.0 , ' mean:', sum(res_k[10:])/len(res_k[10:]), ' std:',np.std(res_k[10:])
-        x = np.linspace(start=0.5,stop=len(resmap[k])/2,num=len(res_k))
+        x = np.linspace(start=0.5,stop=len(resmap[k])/5,num=len(res_k))
         y = np.array(res_k)
         if k in names:
             plt.plot(x,y,label=k,color=c)
-            plt.plot([(idx + 1)/2.0],[mx],'o',color=c)
+            plt.plot([(idx + 1)/5.0],[mx],'o',color=c)
 
     plt.xlabel('Number of Epochs')
     plt.ylabel('F1 score')

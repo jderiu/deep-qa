@@ -268,7 +268,7 @@ def main():
     epoch = 0
     n_epochs = 100
     early_stop = 20
-    check_freq = 1
+    check_freq = 4
     timer_train = time.time()
     no_best_dev_update = 0
     best_dev_acc = -numpy.inf

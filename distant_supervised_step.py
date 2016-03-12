@@ -45,11 +45,12 @@ def main(argv):
     n_chunks = numpy.inf
     ndim = 52
     randtype = 'uniform'
-    update_wemb = True
+    update_wemb = False
+    whiten = False
 
     argv = map(lambda x: x.replace('\r',''),argv)
     try:
-      opts, args = getopt.getopt(argv,"ut:r:d:c:",["testtype=","randtype=","ndim=","n_chunks="])
+      opts, args = getopt.getopt(argv,"ut:r:d:c:w",["testtype=","randtype=","ndim=","n_chunks="])
     except getopt.GetoptError as e:
         print e
         sys.exit(2)
@@ -64,12 +65,15 @@ def main(argv):
             n_chunks = int(arg)
         elif opt == "-u":
             update_wemb = True
+        elif opt == "-w":
+            whiten = True
 
     print test_type
     print n_chunks
     print ndim
     print randtype
     print update_wemb
+    print whiten
 
     data_dir = HOME_DIR + '_' + input_fname
     numpy_rng = numpy.random.RandomState(123)
@@ -113,13 +117,13 @@ def main(argv):
     activation = relu
     nkernels1 = 200
     nkernels2 = 200
-    k_max = 1
-    shape1 = 6
-    st = (3,1)
+    k_max2 = 35
+    shape1 = 4
+    st = (2,1)
     num_input_channels = 1
-    filter_width1 = 6
+    filter_width1 = 4
     filter_width2 = 3
-    q_logistic_n_in = nkernels1 * k_max
+    q_logistic_n_in = nkernels1 * 1
     sent_size = q_max_sent_size + 2*(filter_width1 - 1)
     layer1_size = (sent_size - filter_width1 + 1 - shape1)//st[0] + 1
     print layer1_size
@@ -142,15 +146,17 @@ def main(argv):
     parameter_map['inputShape'] = input_shape
     parameter_map['activation'] = 'relu'
     parameter_map['qLogisticIn'] = q_logistic_n_in
-    parameter_map['kmax'] = k_max
+    parameter_map['kmax'] = 1
+    parameter_map['kmax2'] = k_max2
     parameter_map['st'] = st
+    parameter_map['whiten'] = whiten
 
     parameter_map['filterWidth'] = filter_width1
 
     if not update_wemb:
         lookup_table_words = nn_layers.LookupTableFastStatic(W=vocab_emb,pad=filter_width1-1)
     else:
-        lookup_table_words = nn_layers.LookupTableFast(W=vocab_emb,pad=filter_width1-1)
+        lookup_table_words = nn_layers.LookupTableFast(W=vocab_emb,pad=filter_width1-1,whiten=whiten)
 
     parameter_map['LookupTableFastStaticW'] = lookup_table_words.W
 
@@ -180,6 +186,7 @@ def main(argv):
     parameter_map['NonLinearityLayerB' + str(filter_width1)] = non_linearity.b
 
     pooling = nn_layers.KMaxPoolLayerNative(shape=shape1,ignore_border=True,st=st)
+    #pooling = nn_layers.KMaxPoolLayer(k_max=k_max2)
 
     parameter_map['PoolingShape1'] = shape1
     parameter_map['PoolingSt1'] = st
@@ -219,7 +226,7 @@ def main(argv):
 
     shape2 = input_shape2[2] - filter_width2 + 1
     pooling2 = nn_layers.KMaxPoolLayerNative(shape=shape2,ignore_border=True)
-    n_in = nkernels2*(layer1_size - filter_width2 + 1)//shape2
+    n_in = nkernels2*(input_shape2[2] - filter_width2 + 1)//shape2
     parameter_map['n_in'] = n_in
     parameter_map['PoolingShape2'] = shape2
 

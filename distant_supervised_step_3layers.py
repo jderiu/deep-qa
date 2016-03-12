@@ -116,11 +116,13 @@ def main(argv):
     nkernels3 = 200
     k_max = 1
     shape1 = 6
-    st = (3,1)
+    st = (2,1)
+    shape2 = 4
+    st2 = (1,1)
     num_input_channels = 1
     filter_width1 = 6
-    filter_width2 = 3
-    filter_width3 = 3
+    filter_width2 = 4
+    filter_width3 = 4
     q_logistic_n_in = nkernels1 * k_max
     sent_size = q_max_sent_size + 2*(filter_width1 - 1)
     layer1_size = (sent_size - filter_width1 + 1 - shape1)//st[0] + 1
@@ -218,9 +220,6 @@ def main(argv):
 
     parameter_map['NonLinearityLayerB2'] = non_linearity2.b
 
-    #shape2 = input_shape2[2] - filter_width2 + 1
-    shape2 = 4
-    st2 = (2,1)
     pooling2 = nn_layers.KMaxPoolLayerNative(shape=shape2,st=st2,ignore_border=True)
     parameter_map['PoolingShape2'] = shape2
     parameter_map['st2'] = st2

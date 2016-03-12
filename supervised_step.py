@@ -33,7 +33,8 @@ def main():
     filter_width = parameter_map['filterWidth']
     n_in = parameter_map['n_in']
     st = parameter_map['st']
-
+    whiten = parameter_map['whiten']
+    k_max2 = parameter_map['kmax2']
 
     def relu(x):
         return x * (x > 0)
@@ -47,7 +48,8 @@ def main():
 
     lookup_table_words = nn_layers.LookupTableFast(
         W=parameter_map['LookupTableFastStaticW'].get_value(),
-        pad=filter_width-1
+        pad=filter_width-1,
+        whiten= whiten
     )
 
     filter_shape = parameter_map['FilterShape' + str(filter_width)]
@@ -69,6 +71,7 @@ def main():
 
     shape1 = parameter_map['PoolingShape1']
     pooling = nn_layers.KMaxPoolLayerNative(shape=shape1,ignore_border=True,st=st)
+    #pooling = nn_layers.KMaxPoolLayer(k_max=k_max2)
 
     input_shape2 = parameter_map['input_shape2'+ str(filter_width)]
     filter_shape2 = parameter_map['FilterShape2' + str(filter_width)]
@@ -346,7 +349,7 @@ def main():
     epoch = 0
     n_epochs = 50
     early_stop = 50
-    check_freq = 10
+    check_freq = 4
     timer_train = time.time()
     no_best_dev_update = 0
     best_dev_acc = -numpy.inf
@@ -383,7 +386,7 @@ def main():
 
                     if dev_acc_2016_test > best_dev_acc:
 
-                        best_dev_acc = dev_acc_2015
+                        best_dev_acc = dev_acc_2016_test
                         best_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
                         no_best_dev_update = 0
 

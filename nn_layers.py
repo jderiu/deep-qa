@@ -1,6 +1,7 @@
 import cPickle
 import numpy
 import theano
+import theano.tensor.nlinalg as Tlinalg
 from theano import tensor as T
 from theano.tensor.nnet import conv
 from theano.tensor.shared_randomstreams import RandomStreams
@@ -152,21 +153,47 @@ class LookupTable(Layer):
 class LookupTableFast(Layer):
     """ Basic linear transformation layer (W.X + b).
     Padding is used to force conv2d with valid mode behave as working in full mode."""
-    def __init__(self, W=None, pad=None):
+    def __init__(self, W=None, pad=None,whiten=False):
       super(LookupTableFast, self).__init__()
       self.pad = pad
       self.W = theano.shared(value=W, name='W_emb', borrow=True)
       self.weights = [self.W]
+      self.whiten = whiten
 
     def output_func(self, input):
       out = self.W[input.flatten()].reshape((input.shape[0], 1, input.shape[1], self.W.shape[1]))
       if self.pad:
         pad_matrix = T.zeros((out.shape[0], out.shape[1], self.pad, out.shape[3]),dtype='float32')
         out = T.concatenate([pad_matrix, out, pad_matrix], axis=2)
-      return out
+      if self.whiten:
+        return self.whitening(out)
+      else:
+        return out
 
     def __repr__(self):
       return "{}: {}".format(self.__class__.__name__, self.W.shape.eval())
+
+    def whitening(self,in_data):
+        avg = in_data.mean(axis=2)[:,:,None,:]
+        x = in_data - numpy.repeat(avg,in_data.shape[2],axis=2)
+
+        xT = numpy.transpose(x,(0,1,3,2))
+        #Correlation matrix
+        sigma = numpy.tensordot(xT,x,axes=3)/x.shape[2]
+
+        #Singular Value Decomposition
+        U,S,V = numpy.linalg.eigh(sigma)
+
+        #Whitening constant, it prevents division by zero
+        epsilon = 0.1
+
+        #ZCA Whitening matrix
+        ZCAMatrix = numpy.diag(numpy.dot(numpy.dot(U, numpy.diag(1.0/numpy.sqrt(numpy.diag(S) + epsilon))), U.T))
+
+
+        #Data whitening
+        return numpy.dot(ZCAMatrix, x)
+
 
 
 class PadLayer(Layer):
