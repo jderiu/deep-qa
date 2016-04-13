@@ -11,7 +11,7 @@ def main():
         words.add(word.replace('\r\n',''))
     print words
     max_dist = 0
-    fnames = ['updated_embeddings_custom_30M','smiley_tweets_embedding_30M']
+    fnames = ['updated_embeddings_distant_L3T85Wcustom']
     for fname in fnames:
         print 'Load word-embeddings'
         model = gensim.models.Word2Vec.load_word2vec_format('embeddings/'+fname)

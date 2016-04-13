@@ -47,7 +47,7 @@ def main():
         ('task-B-test2014-twitter.tsv',4),
         ('task-B-test2015-twitter.tsv',4),
         ('twitter-test-gold-B.downloaded.tsv',4),
-        ('SemEval2016-task4-test.subtask-A.txt',3)
+        ('SemEval2016-task4-test.subtask-A_pred.txt',3)
     ]
 
     names = [

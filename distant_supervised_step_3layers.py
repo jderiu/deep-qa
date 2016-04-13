@@ -45,11 +45,12 @@ def main(argv):
     n_chunks = numpy.inf
     ndim = 52
     randtype = 'uniform'
-    update_wemb = True
+    update_wemb = False
+    batch_size = 1000
 
     argv = map(lambda x: x.replace('\r',''),argv)
     try:
-      opts, args = getopt.getopt(argv,"ut:r:d:c:",["testtype=","randtype=","ndim=","n_chunks="])
+      opts, args = getopt.getopt(argv,"ut:r:d:c:b:",["testtype=","randtype=","ndim=","n_chunks=","batch_size="])
     except getopt.GetoptError as e:
         print e
         sys.exit(2)
@@ -62,6 +63,8 @@ def main(argv):
             test_type = arg
         elif opt in ("-c", "--n_chunks"):
             n_chunks = int(arg)
+        elif opt in ("-b", "--batch_size"):
+            batch_size = int(arg)
         elif opt == "-u":
             update_wemb = True
 
@@ -97,7 +100,6 @@ def main(argv):
 
     #######
     n_outs = 2
-    batch_size = 1000
     max_norm = 0
 
     print 'batch_size', batch_size
@@ -115,14 +117,14 @@ def main(argv):
     nkernels2 = 200
     nkernels3 = 200
     k_max = 1
-    shape1 = 6
+    shape1 = 3
     st = (2,1)
     shape2 = 4
     st2 = (1,1)
     num_input_channels = 1
-    filter_width1 = 6
+    filter_width1 = 3
     filter_width2 = 4
-    filter_width3 = 4
+    filter_width3 = 5
     q_logistic_n_in = nkernels1 * k_max
     sent_size = q_max_sent_size + 2*(filter_width1 - 1)
     layer1_size = (sent_size - filter_width1 + 1 - shape1)//st[0] + 1
@@ -258,7 +260,7 @@ def main(argv):
 
     parameter_map['NonLinearityLayerB3'] = non_linearity3.b
 
-    shape3 = input_shape3[2] - filter_width3 + 1
+    shape3 = 3 #input_shape3[2] - filter_width3 + 1
     pooling3 = nn_layers.KMaxPoolLayerNative(shape=shape3,ignore_border=True)
     parameter_map['PoolingShape3'] = shape3
 
@@ -360,7 +362,7 @@ def main(argv):
     zerout_dummy_word = theano.function([], updates=[(W, T.set_subtensor(W[-1:], 0.)) for W in W_emb_list])
 
     epoch = 0
-    n_epochs = 1
+    n_epochs = 1 #int(numpy.ceil(float(146)/n_chunks))
     early_stop = 3
     best_dev_acc = -numpy.inf
     no_best_dev_update = 0
@@ -387,10 +389,10 @@ def main(argv):
             numpy_rng.shuffle(smiley_set)
             smiley_set_tweets[:],smiley_set_sentiments[:] = zip(*smiley_set)
 
-            train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.98)]
-            dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.98):int(len(smiley_set_tweets) * 1)]
-            y_train_set = smiley_set_sentiments[0 : int(len(smiley_set_sentiments) * 0.98)]
-            y_dev_set = smiley_set_sentiments[int(len(smiley_set_sentiments) * 0.98):int(len(smiley_set_sentiments) * 1)]
+            train_set = smiley_set_tweets[0 : int(len(smiley_set_tweets) * 0.99)]
+            dev_set = smiley_set_tweets[int(len(smiley_set_tweets) * 0.99):int(len(smiley_set_tweets) * 1)]
+            y_train_set = smiley_set_sentiments[0 : int(len(smiley_set_sentiments) * 0.99)]
+            y_dev_set = smiley_set_sentiments[int(len(smiley_set_sentiments) * 0.99):int(len(smiley_set_sentiments) * 1)]
 
             print "Length trains_set:", len(train_set)
             print "Length dev_set:", len(dev_set)

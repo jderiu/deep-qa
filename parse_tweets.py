@@ -66,12 +66,14 @@ def main():
     test2013_twitter = "semeval/task-B-test2013-twitter.tsv"
     test2014_twitter = "semeval/task-B-test2014-twitter.tsv"
     test2014_livejournal = "semeval/task-B-test2014-livejournal.tsv"
-    test2014_sarcasm = "semeval/task-B-test2014-twittersarcasm.tsv"
+    test2014_sarcasm = "semeval/test_2014_sarcasm.tsv"
     test15 = "semeval/task-B-test2015-twitter.tsv"
     train16 = "semeval/task-A-train-2016.tsv"
     dev2016 = "semeval/task-A-dev-2016.tsv"
     devtest2016 = "semeval/task-A-devtest-2016.tsv"
-    test2016 = "semeval/task-A-test2016.tsv"
+    test2016 = "semeval/SemEval2016-task4-test.subtask-A.tsv"
+
+    rand_tweets = 'semeval/random_tweet_neut.tsv'
 
     smiley_tweets = 'semeval/smiley_tweets_{}_balanced.gz'.format(input_fname)
 
@@ -96,7 +98,11 @@ def main():
              (devtest2016,3),
              (test2016,3)]
 
-    for (fname,ncols) in files:
+    files = [(rand_tweets,3)]
+
+    for line in open('semeval/phrases'):
+        fname = 'semeval/random_tweet_{}.tsv'.format(line.replace(' ','_').replace('\r','').replace('\n',''))
+        ncols = 3
         tid, tweets, sentiments = load_data(fname,alphabet,ncols=ncols)
         print "Number of tweets:",len(tweets)
 

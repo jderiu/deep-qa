@@ -114,9 +114,9 @@ def main():
         print len(alphabet)
 
     print 'Alphabet before purge:',len(alphabet)
-    alphabet.purge_dict(input_fname=type,min_freq=10)
+    alphabet.purge_dict(input_fname=type,min_freq=5000)
     print 'Alphabet after purge:',len(alphabet)
-    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab.pickle'), 'w'))
+    cPickle.dump(alphabet, open(os.path.join(outdir, 'vocab_5000.pickle'), 'w'))
 
 
 if __name__ == '__main__':

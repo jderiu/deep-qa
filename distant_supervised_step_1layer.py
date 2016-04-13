@@ -111,7 +111,7 @@ def main(argv):
         return x * (x > 0)
 
     activation = relu
-    nkernels = 300
+    nkernels = 200
     k_max = 1
     num_input_channels = 1
     filter_width = 5

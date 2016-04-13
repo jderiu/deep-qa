@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 #3 Layers
-THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python distant_supervised_step.py -t L2T0WcustomKmax -r wemb -d 52 -c 0 -u
-THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python supervised_step.py L2T0WcustomKmax 1
+eps=("1e-1" "1e-2" "1e-3" "1e-4" "1e-5" "1e-6" "1e-7" "1e-8")
+rho=("0.05" "0.25")
 
-THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python distant_supervised_step.py -t L3T4WcustomKmax -r wemb -d 52 -c 7 -u
-THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python supervised_step.py L3T4WcustomKmax 1
-
-
-THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python distant_supervised_step.py -t L3T85WcustomKmax -r wemb -d 52 -c 150 -u
-THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python supervised_step.py L3T85WcustomKmax 1
-
-
+for e in "${eps[@]}"
+do
+for r in "${rho[@]}"
+do
+THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python supervised_step_3layers.py -t L3A -u adadelta -r "$r" -e "$e"
+done
+done
 

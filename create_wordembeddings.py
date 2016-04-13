@@ -33,7 +33,7 @@ def main():
     train16 = "semeval/task-A-train-2016.tsv.gz"
     dev2016 = "semeval/task-A-dev-2016.tsv.gz"
     devtest2016 = "semeval/task-A-devtest-2016.tsv.gz"
-    test2016 = "semeval/SemEval2016-task4-test.subtask-A.txt.gz"
+    test2016 = "semeval/SemEval2016-task4-test.subtask-A_pred.txt.gz"
 
     #unsupervised data
     smiley_pos = 'semeval/smiley_tweets_{}.gz'.format(input_fname)

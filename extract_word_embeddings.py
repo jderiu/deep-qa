@@ -45,13 +45,13 @@ def main():
             assert False, "unhandled option"
 
     data_dir = HOME_DIR + '_' + input_fname
-    parameter_map = cPickle.load(open(data_dir+'/parameters_distant_winner.p', 'rb'))
-    fname_vocab = os.path.join(data_dir, 'vocab_{}_52.pickle'.format(embedding))
+    parameter_map = cPickle.load(open(data_dir+'/parameters_distant_L3T85Wcustom.p', 'rb'))
+    fname_vocab = os.path.join(data_dir, 'vocab.pickle'.format(embedding))
     alphabet = cPickle.load(open(fname_vocab))
 
     W = parameter_map['LookupTableFastStaticW'].get_value()
     ndim = W.shape[1]
-    fname = open('embeddings/updated_embeddings_{}_{}'.format(embedding,input_fname), 'w+')
+    fname = open('embeddings/updated_embeddings_distant_L3T85Wcustom'.format(embedding,input_fname), 'w+')
 
     counter = 0
 

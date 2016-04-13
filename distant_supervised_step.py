@@ -80,7 +80,7 @@ def main(argv):
     q_max_sent_size = 140
 
     # Load word2vec embeddings
-    embedding_fname = 'emb_smiley_tweets_embedding_final.npy'
+    embedding_fname = 'emb_smiley_tweets_embedding_whitened.npy'
     fname_wordembeddings = os.path.join(data_dir, embedding_fname)
     print "Loading word embeddings from", fname_wordembeddings
     vocab_emb = numpy.load(fname_wordembeddings)
@@ -118,10 +118,10 @@ def main(argv):
     nkernels1 = 200
     nkernels2 = 200
     k_max2 = 35
-    shape1 = 4
-    st = (2,1)
+    shape1 = 6
+    st = (3,1)
     num_input_channels = 1
-    filter_width1 = 4
+    filter_width1 = 6
     filter_width2 = 3
     q_logistic_n_in = nkernels1 * 1
     sent_size = q_max_sent_size + 2*(filter_width1 - 1)

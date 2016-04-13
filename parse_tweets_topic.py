@@ -87,7 +87,7 @@ def main():
     train16 = "task-BD-train-2016.tsv"
     dev2016 = "task-BD-dev-2016.tsv"
     devtest2016 = "task-BD-devtest-2016.tsv"
-    test2016 = "SemEval2016-task4-test.subtask-BD.txt"
+    test2016 = "task-BD-test2016.tsv"
 
     fname_vocab = os.path.join(outdir, 'vocab.pickle')
     alphabet = cPickle.load(open(fname_vocab))

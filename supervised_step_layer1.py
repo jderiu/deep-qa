@@ -150,6 +150,7 @@ def main():
     test_2014ljn = 'Test 2014 LiveJournal'
     test_2014srcn = 'Test 2014 Sarcasm'
     test_2013_smsn = 'Test 2013 SMS'
+    train_fulln = 'Training Score'
 
     ep_pred = {}
     ep_pred[test_2016n] = []
@@ -159,6 +160,7 @@ def main():
     ep_pred[test_2014ljn] = []
     ep_pred[test_2014srcn] = []
     ep_pred[test_2013_smsn] = []
+    ep_pred[train_fulln] = []
 
      #######################
     # Supervised Learining#
@@ -213,6 +215,14 @@ def main():
     test_2014_sarcasm_tweets = numpy.load(os.path.join(data_dir, 'task-B-test2014-twittersarcasm.tweets.npy'))
     test_2014_sarcasm_sentiments = numpy.load(os.path.join(data_dir, 'task-B-test2014-twittersarcasm.sentiments.npy'))
 
+    rand_tweets_tids = numpy.load(os.path.join(data_dir, 'random_tweet.tids.npy'))
+    rand_tweets_tweets = numpy.load(os.path.join(data_dir, 'random_tweet.tweets.npy'))
+    rand_tweets_sentiments = numpy.load(os.path.join(data_dir, 'random_tweet.sentiments.npy'))
+
+    training_full_id = numpy.concatenate((training2013_tids,dev_2013_tids),axis=0)
+    training_full_id = numpy.concatenate((training_full_id,trainingA_2016_tids),axis=0)
+    training_full_id = numpy.concatenate((training_full_id,devA_2016_tids),axis=0)
+    training_full_id = numpy.concatenate((training_full_id,devtestA_2016_tids),axis=0)
 
     training_full_tweets = numpy.concatenate((training2013_tweets,dev_2013_tweets),axis=0)
     training_full_tweets = numpy.concatenate((training_full_tweets,trainingA_2016_tweets),axis=0)
@@ -229,6 +239,13 @@ def main():
         [training_full_tweets,training_full_sentiments],
         batch_size=batch_size,
         randomize=True
+    )
+
+    train_err_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
+        numpy_rng,
+        [training_full_tweets],
+        batch_size=batch_size,
+        randomize=False
     )
 
     test_2015_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
@@ -327,6 +344,7 @@ def main():
     no_best_dev_update = 0
     best_dev_acc = -numpy.inf
     num_train_batches = len(train_set_iterator)
+    saved12 = False
     while epoch < n_epochs:
         timer = time.time()
         for i, (tweet,y_label) in enumerate(tqdm(train_set_iterator,ascii=True), 1):
@@ -345,6 +363,7 @@ def main():
                     y_pred_test_livejournal_2014 = predict_batch(test_2014_livejournal_iterator)
                     y_pred_test_sarcasm_2014 = predict_batch(test_2014_sarcasm_iterator)
                     #y_pred_devtest_2016 = predict_batch(devtestA2016_iterator)
+                    y_train_score = predict_batch(train_err_iterator)
 
                     dev_acc_2015 = semeval_f1_taskA(test_2015_sentiments,y_pred_dev_2015)
                     dev_acc_2014 = semeval_f1_taskA(test_2014_sentiments,y_pred_test_2014)
@@ -353,6 +372,7 @@ def main():
                     dev_acc_2013 = semeval_f1_taskA(test_2013_sentiments,y_pred_test_2013)
                     dev_acc_2013_sms = semeval_f1_taskA(test_2013_sms_sentiments,y_pred_test_sms_2013)
                     dev_acc_2016 = semeval_f1_taskA(test_2016_sentiments,y_pred_test_2016)
+                    dev_acc_train_err = semeval_f1_taskA(training_full_sentiments,y_train_score)
 
                     ep_pred[test_2016n].append(dev_acc_2016)
                     ep_pred[test_2015n].append(dev_acc_2015)
@@ -361,6 +381,7 @@ def main():
                     ep_pred[test_2014ljn].append(dev_acc_2014_lj)
                     ep_pred[test_2014srcn].append(dev_acc_2014_srcs)
                     ep_pred[test_2013_smsn].append(dev_acc_2013_sms)
+                    ep_pred[train_fulln].append(dev_acc_train_err)
 
                     if dev_acc_2016 > best_dev_acc:
                         best_dev_acc = dev_acc_2016
@@ -374,8 +395,11 @@ def main():
                         print('2014lj epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2014_lj))
                         print('2014src epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2014_srcs))
                         print('2013sms epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2013_sms))
-                        #print('devtest2016 epoch: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_2016_devtest))
+                        print('Train Err: {} chunk: {} best_chunk_auc: {:.4f};'.format(epoch, i, dev_acc_train_err))
 
+                if epoch == 15 and not saved12:
+                    saved12 = True
+                    ep_12_params = [numpy.copy(p.get_value(borrow=True)) for p in params]
 
 
         zerout_dummy_word()
@@ -388,91 +412,118 @@ def main():
             break
 
     print('Training took: {:.4f} seconds'.format(time.time() - timer_train))
-    for i, param in enumerate(best_params):
-        params[i].set_value(param, borrow=True)
-
     cPickle.dump(ep_pred,open(data_dir+'/supervised_results_{}.p'.format(test_type), 'wb'))
 
-    return
     #######################
     # Get Sentence Vectors#
     ######################
-
-    batch_size = input_shape[0]
-
     inputs_senvec = [batch_tweets]
-    givents_senvec = {tweets:batch_tweets,
-                      }
-
-    output = nnet_tweets.layers[-2].output
-
-    output_fn = function(inputs=inputs_senvec, outputs=output,givens=givents_senvec)
-
+    givents_senvec = {tweets:batch_tweets}
     sets = [
-        (test_2014_tids,test_2014_tweets,'task-B-test2014-twitter'),
-        (test_2015_tids,test_2015_tweets,'task-B-test2015-twitter'),
-        (training2013_tids,training2013_tweets,'task-BD-train-2013'),
-        (test_2013_sms_tids,test_2013_sms_tweets,'task-B-test2013-sms'),
-        (devA_2016_tids,devA_2016_tweets,'task-A-dev-2016'),
-        (trainingA_2016_tids,trainingA_2016_tweets,'task-A-train-2016'),
-        (devtestA_2016_tids,devtestA_2016_tweets,'task-A-devtest-2016'),
-        (test_2016_tids,test_2016_tweets,'SemEval2016-task4-test.subtask-A'),
-        (test_2014_sarcasm_tids,test_2014_sarcasm_tweets,'test_2014_sarcasm'),
-        (test_2014_livejournal_tids,test_2014_livejournal_tweets,'task-B-test2014-livejournal'),
-        (test_2013_tids,test_2013_tweets,'task-BD-train-2013'),
-        (dev_2013_tids,dev_2013_tweets,'task-BD-dev-2013')
-    ]
+            (rand_tweets_tids,rand_tweets_tweets,'random_tweets')
+            (test_2016_tids,test_2016_tweets,'SemEval2016-task4-test.subtask-A'),
+            (test_2014_tids,test_2014_tweets,'task-B-test2014-twitter'),
+            (test_2015_tids,test_2015_tweets,'task-B-test2015-twitter'),
+            (test_2013_tids,test_2013_tweets,'task-B-test2013-twitter'),
+            (test_2014_livejournal_tids,test_2014_livejournal_tweets,'task-B-test2014-livejournal'),
+            (test_2014_sarcasm_tids,test_2014_sarcasm_tweets,'test_2014_sarcasm'),
+            (test_2013_sms_tids,test_2013_sms_tweets,'task-B-test2013-sms'),
+            (training2013_tids,training2013_tweets,'task-B-train.20140221'),
+            (devA_2016_tids,devA_2016_tweets,'task-A-dev-2016'),
+            (trainingA_2016_tids,trainingA_2016_tweets,'task-A-train-2016'),
+            (devtestA_2016_tids,devtestA_2016_tweets,'task-A-devtest-2016'),
+            (dev_2013_tids,dev_2013_tweets,'task-B-dev.20140225'),
+            (training_full_id,training_full_tweets,'training_full_set')
+        ]
 
-    for (fids,fset,name) in sets:
-        test_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
-            numpy_rng,
-            [fset],
-            batch_size=batch_size,
-            randomize=False
-        )
+    get_senvec = False
+    if get_senvec:
+        batch_size = input_shape[0]
 
-        counter = 0
-        fname = open(os.path.join(data_dir,'sentence-vecs/{}.txt'.format(name)), 'w+')
-        for i, tweet in enumerate(tqdm(test_set_iterator), 1):
-            o = output_fn(tweet[0])
-            for vec in o:
-                fname.write(fids[counter])
-                for el in numpy.nditer(vec):
-                    fname.write(" %f" % el)
-                fname.write("\n")
-                counter+=1
-                if counter == test_set_iterator.n_samples:
-                    break
+        output = nnet_tweets.layers[-2].output
+
+        output_fn = function(inputs=inputs_senvec, outputs=output,givens=givents_senvec)
+
+        for (fids,fset,name) in sets:
+            test_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
+                numpy_rng,
+                [fset],
+                batch_size=batch_size,
+                randomize=False
+            )
+
+            counter = 0
+            fname = open(os.path.join(data_dir,'sentence-vecs/{}.txt'.format(name)), 'w+')
+            for i, tweet in enumerate(tqdm(test_set_iterator), 1):
+                o = output_fn(tweet[0])
+                for vec in o:
+                    fname.write(fids[counter])
+                    for el in numpy.nditer(vec):
+                        fname.write(" %f" % el)
+                    fname.write("\n")
+                    counter+=1
+                    if counter == test_set_iterator.n_samples:
+                        break
 
     ##############################
     # Get Predictions Probabilites#
     #############################
+    print 'Store Predictions'
 
-    batch_size = input_shape[0]
+    get_params = [
+        ('best_params',best_params),
+        ('ep15params',ep_12_params)
+    ]
 
-    output = nnet_tweets.layers[-1].p_y_given_x
+    for pname, gparams in get_params:
+        for i, param in enumerate(gparams):
+            params[i].set_value(param, borrow=True)
+        batch_size = input_shape[0]
 
-    output_fn = function(inputs=inputs_senvec, outputs=output,givens=givents_senvec)
+        output = nnet_tweets.layers[-1].p_y_given_x
 
-    for (fids,fset,name) in sets:
-        test_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
-            numpy_rng,
-            [fset],
-            batch_size=batch_size,
-            randomize=False
-        )
+        output_fn = function(inputs=inputs_senvec, outputs=output,givens=givents_senvec)
 
-        counter = 0
-        fname = open(os.path.join(data_dir,'prob_predictions/{}.txt'.format(name)), 'w+')
-        for i, tweet in enumerate(tqdm(test_set_iterator), 1):
-            o = output_fn(tweet[0])
-            for vec in o:
-                for el in numpy.nditer(vec):
-                    fname.write(" %f" % el)
-                fname.write("\n")
-                counter+=1
-                if counter == test_set_iterator.n_samples:
-                    break
+        for (fids,fset,name) in sets:
+            test_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
+                numpy_rng,
+                [fset],
+                batch_size=batch_size,
+                randomize=False
+            )
+
+            opath_prob = os.path.join(data_dir,'{}/{}/predictions_probs'.format(pname,test_type))
+            if not os.path.exists(opath_prob):
+                os.makedirs(opath_prob)
+                print 'Created Path',opath_prob
+
+            opath_pred = os.path.join(data_dir,'{}/{}/predictions_pred'.format(pname,test_type))
+            if not os.path.exists(opath_pred):
+                os.makedirs(opath_pred)
+                print 'Created Path',opath_pred
+
+            counter = 0
+            fname_prob = open(os.path.join(opath_prob,'{}.txt'.format(name)), 'w+')
+            fname_pred = open(os.path.join(opath_pred,'{}.txt'.format(name)), 'w+')
+            for i, tweet in enumerate(tqdm(test_set_iterator), 1):
+                o = output_fn(tweet[0])
+                for vec in o:
+                    #save pred_prob
+                    for el in numpy.nditer(vec):
+                        fname_prob.write("%f\t" % el)
+                    fname_prob.write("\n")
+                    #save pred
+                    pred = numpy.argmax(vec)
+                    sentiments = {
+                        0 : 'negative',
+                        1 : 'neutral',
+                        2 : 'positive'
+                    }
+                    fname_pred.write('{}\n'.format(sentiments[pred]))
+
+                    counter+=1
+                    if counter == test_set_iterator.n_samples:
+                        break
 
 
 if __name__ == '__main__':

@@ -23,14 +23,12 @@ def main():
     # LAYERS #
     #########
     HOME_DIR = "semeval_parsed"
-    timestamp = str(long(time.time()*1000))
     input_fname = '200M'
-    embedding = 'custom'
 
     data_dir = HOME_DIR + '_' + input_fname
     numpy_rng = numpy.random.RandomState(123)
     print "Load Parameters"
-    parameter_map = cPickle.load(open(data_dir+'/parameters_distant_winner.p', 'rb'))
+    parameter_map = cPickle.load(open(data_dir+'/parameters_distant_L2A.p', 'rb'))
     input_shape = parameter_map['inputShape']
     filter_width = parameter_map['filterWidth']
     n_in = parameter_map['n_in']
@@ -233,13 +231,19 @@ def main():
     devtest_2016_sentiments = numpy.load(os.path.join(data_dir, 'task-BD-devtest-2016.sentiments.npy'))
     devtest_2016_topics = numpy.load(os.path.join(data_dir, 'task-BD-devtest-2016.topics.npy'))
 
-    test_2016_tids = numpy.load(os.path.join(data_dir, 'SemEval2016-task4-test.subtask-BD.tids.npy'))
-    test_2016_tweets = numpy.load(os.path.join(data_dir, 'SemEval2016-task4-test.subtask-BD.tweets.npy'))
-    test_2016_topics = numpy.load(os.path.join(data_dir, 'SemEval2016-task4-test.subtask-BD.topics.npy'))
+    test_2016_tids = numpy.load(os.path.join(data_dir, 'task-BD-test2016.tids.npy'))
+    test_2016_tweets = numpy.load(os.path.join(data_dir, 'task-BD-test2016.tweets.npy'))
+    test_2016_sentiments = numpy.load(os.path.join(data_dir, 'task-BD-test2016.sentiments.npy'))
+    test_2016_topics = numpy.load(os.path.join(data_dir, 'task-BD-test2016.topics.npy'))
 
     training_full_tweets = numpy.concatenate((training_2016_tweets,dev_2016_tweets),axis=0)
+    training_full_tweets = numpy.concatenate((training_full_tweets,devtest_2016_tweets),axis=0)
+
     training_full_sentiments = numpy.concatenate((training_2016_sentiments,dev_2016_sentiments),axis=0)
+    training_full_sentiments = numpy.concatenate((training_full_sentiments,devtest_2016_sentiments),axis=0)
+
     training_full_topics = numpy.concatenate((training_2016_topics,dev_2016_topics),axis=0)
+    training_full_topics = numpy.concatenate((training_full_topics,devtest_2016_topics),axis=0)
 
     train_set_iterator = sgd_trainer.MiniBatchIteratorConstantBatchSize(
         numpy_rng,
@@ -268,7 +272,7 @@ def main():
     epoch = 0
     n_epochs = 100
     early_stop = 20
-    check_freq = 4
+    check_freq = 1
     timer_train = time.time()
     no_best_dev_update = 0
     best_dev_acc = -numpy.inf
@@ -279,8 +283,8 @@ def main():
                 train_fn(tweet,topic,y_label)
 
                 if i % check_freq == 0 or i == num_train_batches:
-                    y_pred_devtest_2016 = predict_batch(devtest2016_iterator)
-                    dev_acc_2016_devtest = semeval_f1_taskB(devtest_2016_sentiments,y_pred_devtest_2016)
+                    y_pred_devtest_2016 = predict_batch(test2016_iterator)
+                    dev_acc_2016_devtest = semeval_f1_taskB(test_2016_sentiments,y_pred_devtest_2016)
 
                     if dev_acc_2016_devtest > best_dev_acc:
                         print('devtest 2016 epoch: {} chunk: {} best_chunk_auc: {:.4f}; best_dev_acc: {:.4f}'.format(epoch, i, dev_acc_2016_devtest,best_dev_acc))
