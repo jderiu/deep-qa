@@ -17,7 +17,8 @@ def convert_sentiment(sentiment):
         "negative": 0,
         "neutral" : 1,
         "objective-OR-neutral" : 1,
-        "objective" :1
+        "objective" :1,
+        "UNK": np.random.randint(3)
     }.get(sentiment,1)
 
 
