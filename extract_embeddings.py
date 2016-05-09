@@ -13,7 +13,7 @@ def main():
     data_dir = HOME_DIR + '_' + input_fname
 
     #get vocabulary
-    fname_vocab = os.path.join(data_dir, 'vocab_5000.pickle')
+    fname_vocab = os.path.join(data_dir, 'vocab.pickle')
     alphabet = cPickle.load(open(fname_vocab))
     words = alphabet.keys()
     print "Vocab size", len(alphabet)
@@ -37,7 +37,7 @@ def main():
     print "Using zero vector as random"
     print 'random_words_count', random_words_count
     print vocab_emb.shape
-    outfile = os.path.join(data_dir, 'emb_smiley_tweets_embedding_final_5000.npy')
+    outfile = os.path.join(data_dir, 'emb_smiley_tweets_embedding_final.npy')
     print outfile
     np.save(outfile, vocab_emb)
 
